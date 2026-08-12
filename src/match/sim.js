@@ -426,6 +426,16 @@ function passOptions(match, carrier, ctx) {
   return out;
 }
 
+/**
+ * Cuánto se mide un defensor antes de entrar. Dentro de su área, porque una
+ * falta es penalti; y con una amarilla encima, porque la siguiente es la
+ * calle. Sin lo segundo, un amonestado entraba igual que uno limpio y las
+ * expulsiones por doble amarilla se iban a 0,47 por partido (real 0,1-0,2).
+ */
+export function tackleCaution(defender, inOwnBox) {
+  return (inOwnBox ? 0.16 : 1) * (defender.yellow >= 1 ? 0.42 : 1);
+}
+
 function shotQuality(match, carrier) {
   const gx = targetGoalX(match, carrier.side);
   const gy = W / 2;
@@ -586,7 +596,7 @@ function tryTackles(match, ctx, dt, hooks) {
     // Dentro del área los defensores miden mucho más la entrada
     const ownGoal = attackDir(match, def.side) > 0 ? 0 : L;
     const inOwnBox = Math.abs(def.pos.x - ownGoal) < 17 && Math.abs(def.pos.y - W / 2) < 20.2;
-    const caution = inOwnBox ? 0.16 : 1;
+    const caution = tackleCaution(def, inOwnBox);
     const eager = (0.055 + tac.aggression * 0.10 + def.player.aggression / 900
       + (def.mood === 'frustrated' ? 0.08 : 0) + (def.mood === 'aggressive' ? 0.05 : 0)) * caution;
     if (match.rng.next() > eager) { def.tackleCd = 1.2; continue; }

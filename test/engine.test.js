@@ -10,6 +10,7 @@ import { makeAutoReferee } from '../src/ai/autoReferee.js';
 import { DIFFICULTY, FIELD, SIM } from '../src/core/config.js';
 import { RNG } from '../src/core/rng.js';
 import { makeChallengeIncident, makeHandballIncident } from '../src/match/incidents.js';
+import { tackleCaution } from '../src/match/sim.js';
 
 const world = generateWorld('motor');
 const div = world.divisions.find((d) => d.id === 'primera');
@@ -252,6 +253,36 @@ export default suite('Motor de partido', (t) => {
     }
     const tasa = marcados / N;
     between(tasa, 0.71, 0.79, `los penaltis se marcan el ${(tasa * 100).toFixed(1)}% de las veces`);
+  });
+
+  t('quien pita una entrada temeraria la amonesta', () => {
+    // La tarjeta no puede ser una segunda tirada a ciegas: para llegar a esa
+    // fase el árbitro ya ha pitado y se ha acercado al jugador. Con dos
+    // tiradas independientes se perdían dos tercios de las amarillas que el
+    // reglamento pedía (1,6 mostradas de 4,5 debidas).
+    const rng = new RNG('tarjetas');
+    const auto = makeAutoReferee({ skill: 72, rng });
+    const inc = { type: 'challenge', clarity: 0.7, truth: { card: 'yellow', cardReason: 'foul.recklessTackle' } };
+    let mostradas = 0;
+    const N = 2000;
+    for (let i = 0; i < N; i++) {
+      if (auto(inc, [], {}, { cardPhase: true }).card === 'yellow') mostradas++;
+    }
+    const tasa = mostradas / N;
+    check(tasa > 0.68, `sólo amonesta el ${(tasa * 100).toFixed(0)}% de las entradas temerarias que ya ha pitado`);
+  });
+
+  t('un amonestado entra con miedo a la segunda', () => {
+    // Sin esto, un jugador con amarilla entraba igual que uno limpio y las
+    // expulsiones por doble amarilla se iban a 0,47 por partido (real 0,1-0,2).
+    const limpio = { yellow: 0 };
+    const amonestado = { yellow: 1 };
+    check(tackleCaution(amonestado, false) < tackleCaution(limpio, false) * 0.6,
+      'un amonestado debería medir mucho más la entrada fuera del área');
+    check(tackleCaution(amonestado, true) < tackleCaution(limpio, true),
+      'y también dentro de su área');
+    check(tackleCaution(limpio, true) < tackleCaution(limpio, false) * 0.3,
+      'dentro del área se entra mucho menos que fuera');
   });
 
   t('las medias de un partido son creíbles', () => {

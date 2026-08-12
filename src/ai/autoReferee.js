@@ -13,20 +13,27 @@ export function makeAutoReferee(opts = {}) {
 
   const doubt = () => (rng ? rng.next() : Math.random());
 
+  // Lo que el árbitro ve depende sobre todo de la jugada; su nivel decide en
+  // las dudosas. Con el modelo anterior el nivel pesaba igual en todas, así
+  // que un árbitro decente fallaba una falta clarísima de cada tres.
   const roll = (clarity) => {
-    const p = clamp(skill * (0.6 + clarity * 0.4), 0.05, 0.98);
+    const p = clamp(0.23 + clarity * 0.46 + skill * 0.26, 0.05, 0.98);
     return (rng ? rng.next() : Math.random()) < p;
   };
 
   return function autoReferee(inc, options, match, ctx = {}) {
     const truth = inc.truth || {};
-    const sees = roll(inc.clarity ?? 0.7);
 
     if (ctx.cardPhase) {
+      // La tarjeta no es una tirada a ciegas como la del instante de la
+      // entrada: para llegar aquí el árbitro ya ha pitado, ha parado el juego
+      // y se ha acercado al jugador, así que juzga con más información.
       const need = truth.card || null;
-      const card = sees ? need : (need === 'red' ? 'yellow' : need === 'yellow' ? null : null);
-      return { card };
+      const juzgaBien = roll(Math.min(1, (inc.clarity ?? 0.7) + 0.3));
+      return { card: juzgaBien ? need : (need === 'red' ? 'yellow' : null) };
     }
+
+    const sees = roll(inc.clarity ?? 0.7);
 
     switch (inc.type) {
       case 'challenge':

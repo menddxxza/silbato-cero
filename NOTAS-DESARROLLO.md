@@ -34,19 +34,17 @@ automático con acierto 72%). Con 60 partidos, no con 8: los sucesos raros
 
 | Métrica | Silbato Cero | Fútbol real (referencia) |
 |---|---|---|
-| Goles | 2,98 | 2,7 |
-| Faltas | 22,3 | 22–26 |
-| Amarillas | 2,6 | 3–5 |
-| Rojas | 0,27 | 0,1–0,2 |
-| Penaltis | 0,27 | 0,25 |
-| Fueras de juego | 3,8 | 3–5 |
-| Córners | 11,0 | 9–11 |
-| Tiros | 28,0 | 24–28 |
+| Goles | 2,67 | 2,7 |
+| Faltas | 20,9 | 22–26 |
+| Amarillas | 3,4 | 3–5 |
+| Rojas | 0,30 | 0,1–0,2 |
+| Penaltis | 0,17 | 0,25 |
+| Fueras de juego | 3,6 | 3–5 |
+| Córners | 10,7 | 9–11 |
+| Tiros | 27,9 | 24–28 |
 
-Las amarillas salen por debajo del rango real a propósito: la diferencia son
-las que el árbitro automático no ve, que es exactamente lo que debe pasar. Los
-penaltis incluyen las prórrogas de las eliminatorias, que en este banco son un
-tercio de los partidos.
+Los penaltis incluyen las prórrogas de las eliminatorias, que en este banco son
+un tercio de los partidos.
 
 Los atributos de los futbolistas se comprimen por categoría
 (`generators.compressLevel`): sin esa compresión, la Liga Regional producía
@@ -123,7 +121,7 @@ No son deudas: son límites elegidos y sostenidos.
 - **Vertical en el móvil.** En pantallas altas el campo se gira un cuarto de
   vuelta y llena el teléfono, en lugar de quedarse en una franja central. La
   dirección de la palanca y del mando gira con él.
-- **Batería de pruebas.** 87 pruebas sin dependencias (`node test/all.js`):
+- **Batería de pruebas.** 89 pruebas sin dependencias (`node test/all.js`):
   reglamento, sistemas y motor. Incluye las que evitan las regresiones que más
   caro salieron durante el desarrollo: partidos que no terminan, jugadores
   fuera del campo, posesión que no cuadra, equipaciones indistinguibles,
@@ -270,6 +268,44 @@ pruebas, y la tasa variaba diez puntos según qué lanzador y qué portero
 tocaran (78,3 % en un mundo, 83,3 % en otro), así que no distinguía el valor
 viejo del nuevo. La definitiva fija los atributos y mide el modelo, no la
 suerte del sorteo.
+
+## Las amarillas, y una excusa que no se sostenía
+
+Estas notas decían que las amarillas salían bajas (2,2 por partido, contra 3-5
+reales) «porque son las que el árbitro automático no ve, que es exactamente lo
+que debe pasar». Al comprobarlo, la explicación era medio verdad y medio
+excusa: el reglamento **sí** pedía 4,5 amonestaciones por partido —el rango
+real—, pero sólo se mostraban 1,6. Se perdían dos tercios, y eso no es un
+árbitro falible: es un modelo mal hecho.
+
+Dos causas, las dos corregidas:
+
+1. **La tarjeta era una segunda tirada a ciegas.** El mismo incidente pasaba
+   dos veces por el «¿lo ha visto?»: una para pitar la falta y otra para
+   decidir la tarjeta, independientes. Pero para llegar a la segunda el
+   árbitro ya ha pitado, ha parado el juego y se ha acercado al jugador:
+   juzga con más información, no con la misma.
+2. **El nivel del árbitro pesaba igual en una jugada clarísima que en una
+   dudosa.** Con la fórmula anterior, un árbitro decente fallaba una falta
+   clara de cada tres. Ahora lo que ve depende sobre todo de la jugada, y su
+   nivel decide en las dudosas, que es como funciona de verdad.
+
+Al corregirlo aparecieron 0,47 rojas por partido (real 0,1-0,2): con más
+amarillas, más segundas amarillas. Y ahí salió otra cosa que el motor no
+modelaba: **un jugador amonestado entraba exactamente igual que uno limpio**.
+Ahora mide la entrada (`sim.tackleCaution`), y las rojas vuelven a 0,30.
+
+Amarillas: 2,2 → 3,4. Y de paso los goles pasaron de 2,98 a 2,67, justo en el
+valor real, porque un árbitro que pita lo que debe cambia el ritmo del partido.
+
+### Sobre medir
+
+Al comparar el antes y el después de la primera corrección salió 1,6 → 2,6, y
+era mentira: el cambio consumía **dos tiradas del generador en vez de una**, y
+eso desplaza toda la secuencia del partido. Reescrito para consumir una sola,
+la mejora real de ese primer arreglo era 1,6 → 1,85. Cuando el motor es
+determinista por semilla, cualquier cambio en cuántos números se piden falsea
+la comparación.
 
 ## Qué no está y por qué
 
