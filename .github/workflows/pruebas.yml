@@ -4,9 +4,9 @@ name: Pruebas
 
 on:
   push:
-    branches: [main, claude/silbato-cero]
+    branches: [main]
   pull_request:
-    branches: [main, claude/silbato-cero]
+    branches: [main]
 
 jobs:
   pruebas:
