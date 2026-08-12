@@ -11,6 +11,8 @@ export function makeAutoReferee(opts = {}) {
   const skill = clamp(opts.skill ?? 65, 5, 99) / 100;
   const rng = opts.rng;
 
+  const doubt = () => (rng ? rng.next() : Math.random());
+
   const roll = (clarity) => {
     const p = clamp(skill * (0.6 + clarity * 0.4), 0.05, 0.98);
     return (rng ? rng.next() : Math.random()) < p;
@@ -30,19 +32,31 @@ export function makeAutoReferee(opts = {}) {
       case 'challenge':
       case 'penaltyShout': {
         if (truth.simulation) return sees ? { action: 'dive', card: 'yellow' } : { action: 'playon' };
-        if (!truth.isFoul) return sees ? { action: 'playon' } : { action: inc.inBox ? 'penalty' : 'foul' };
+        if (!truth.isFoul) {
+          if (sees) return { action: 'playon' };
+          // Equivocarse no es lo mismo que inventarse un penalti. Ante la duda
+          // dentro del área el árbitro deja seguir; sólo a veces compra la
+          // protesta. Fuera del área el coste del error es mucho menor.
+          if (!inc.inBox) return { action: 'foul' };
+          return doubt() < 0.28 ? { action: 'penalty' } : { action: 'playon' };
+        }
         if (inc.inBox) return sees ? { action: 'penalty' } : { action: 'playon' };
         // Ventaja si procede
         if (sees && (inc.spa || inc.dogso === false) && match.possession === inc.victimSide
-          && (rng ? rng.next() : Math.random()) < 0.3) {
+          && doubt() < 0.3) {
           return { action: 'advantage' };
         }
         return sees ? { action: 'foul' } : { action: 'playon' };
       }
-      case 'handball':
-        return (sees ? truth.offence : !truth.offence)
-          ? { action: inc.inBox ? 'penalty' : 'handball' }
-          : { action: 'playon' };
+      case 'handball': {
+        const sanciona = sees ? truth.offence : !truth.offence;
+        if (!sanciona) return { action: 'playon' };
+        // Misma cautela: una mano dudosa en el área rara vez acaba en penalti
+        if (inc.inBox && !truth.offence) {
+          return doubt() < 0.28 ? { action: 'penalty' } : { action: 'playon' };
+        }
+        return { action: inc.inBox ? 'penalty' : 'handball' };
+      }
       case 'offside':
         return (sees ? truth.offside : !truth.offside) ? { action: 'offside' } : { action: 'playon' };
       case 'outOfPlay': {

@@ -28,19 +28,25 @@ hecho en versión funcional pero ampliable, y qué falta.
 
 ## Calibración del motor
 
-Medias por partido en Primera División Ibérica (`node test/run.js 8`, árbitro
-automático con acierto 72%):
+Medias por partido en Primera División Ibérica (`node test/run.js 60`, árbitro
+automático con acierto 72%). Con 60 partidos, no con 8: los sucesos raros
+—penaltis, rojas— necesitan muestra o el número que sale es ruido.
 
 | Métrica | Silbato Cero | Fútbol real (referencia) |
 |---|---|---|
-| Goles | ~2,4 | 2,7 |
-| Faltas | ~21 | 22–26 |
-| Amarillas | ~2,8 | 3–5 |
-| Rojas | ~0,15 | 0,1–0,2 |
-| Penaltis | ~0,4 | 0,25 |
-| Fueras de juego | ~4 | 3–5 |
-| Córners | ~9,8 | 9–11 |
-| Tiros | ~30 | 24–28 |
+| Goles | 2,33 | 2,7 |
+| Faltas | 21,9 | 22–26 |
+| Amarillas | 2,2 | 3–5 |
+| Rojas | 0,12 | 0,1–0,2 |
+| Penaltis | 0,35 | 0,25 |
+| Fueras de juego | 3,6 | 3–5 |
+| Córners | 11,2 | 9–11 |
+| Tiros | 31,6 | 24–28 |
+
+Las amarillas salen por debajo del rango real a propósito: la diferencia son
+las que el árbitro automático no ve, que es exactamente lo que debe pasar. Los
+penaltis incluyen las prórrogas de las eliminatorias, que en este banco son un
+tercio de los partidos.
 
 Los atributos de los futbolistas se comprimen por categoría
 (`generators.compressLevel`): sin esa compresión, la Liga Regional producía
@@ -193,6 +199,39 @@ En inglés, todo eso se veía en español o en clave. Ahora:
 Verificado recorriendo una carrera entera en inglés —creación de árbitro,
 logros, previa, partido completo, informe y epílogo— sin que se cuele una
 sola palabra en castellano.
+
+## La deriva de los penaltis
+
+Al medir de nuevo tras todos los cambios, los penaltis estaban en **0,63 por
+partido**: dos veces y media los 0,25 reales, y en contra de lo que decía esta
+misma tabla. La prueba de rangos no lo cazó porque permitía de 0 a 1,2, y con
+seis partidos un suceso tan raro no da señal.
+
+El reglamento no tenía la culpa: lo que fallaba era **con qué frecuencia se
+daban los hechos que lo activan**.
+
+1. **Manos.** Un 12 % de las manos se generaban como «parada deliberada», que
+   por reglamento siempre es infracción —y penalti dentro del área—, y un 18 %
+   con el brazo por encima del hombro, igual de automático. Parar el balón con
+   la mano a propósito dentro de tu área es un acto desesperado y rarísimo, y
+   quien bloquea a bocajarro lo hace con los brazos pegados al cuerpo. Con esa
+   distinción, los penaltis por mano bajaron de 0,45 a 0,07 por partido.
+2. **Entradas.** El defensor dentro de su propia área sabe que una falta es
+   penalti: sólo entra cuando llega claramente al balón. Las faltas en el área
+   pasaron de 0,35 a 0,28 por partido.
+3. **Criterio del árbitro automático.** El fallo más gordo: si no veía bien
+   una jugada que **no era falta** dentro del área, señalaba penalti *siempre*.
+   Ningún árbitro hace eso; ante la duda se deja seguir. Ahora sólo compra la
+   protesta el 28 % de las veces. Los penaltis inventados cayeron de 0,33 a
+   0,05 por partido.
+
+Resultado: **0,63 → 0,35 por partido**, medido sobre 60 partidos.
+
+Las dos primeras causas quedan fijadas con pruebas deterministas y baratas
+(`test/engine.test.js`), comprobadas deshaciendo el arreglo para ver que
+fallan de verdad. El número final por partido no se puede vigilar en una
+prueba unitaria sin volverla lenta o inestable: para eso está
+`node test/run.js 60`.
 
 ## Qué no está y por qué
 

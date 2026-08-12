@@ -86,11 +86,17 @@ export function makeChallengeIncident(match, defender, attacker, duel) {
   const diffCfg = match.difficulty;
   const tac = match.tactics[defender.side];
 
-  // ¿Jugó el balón?
-  const playedBall = duel.diff > -2 + rng.gauss(0, 5);
+  const defGoalX = ownGoalX(match, defender.side);
+  const inBox = inPenaltyArea(attacker.pos, defGoalX < FIELD.length / 2 ? 0 : FIELD.length);
+
+  // ¿Jugó el balón? Dentro de su propia área el defensor sabe que una falta
+  // es penalti: sólo entra cuando llega claramente al balón, y si no llega,
+  // se retira en lugar de barrer.
+  const playedBall = duel.diff > (inBox ? -7.5 : -2) + rng.gauss(0, 5);
   const contactRaw = clamp(
     0.20 - duel.diff / 42 + defender.player.aggression / 520 + duel.speedDiff / 55
-    + rng.gauss(0, 0.14) * diffCfg.ambiguity,
+    + rng.gauss(0, 0.14) * diffCfg.ambiguity
+    - (inBox ? 0.13 : 0),
     0, 1.35,
   );
   const fromBehind = Math.cos(attacker.facing - Math.atan2(
@@ -103,9 +109,6 @@ export function makeChallengeIncident(match, defender, attacker, duel) {
     + (defender.mood === 'frustrated' ? 0.16 : 0) + rng.gauss(0, 0.11),
     0, 1.4,
   );
-
-  const defGoalX = ownGoalX(match, defender.side);
-  const inBox = inPenaltyArea(attacker.pos, defGoalX < FIELD.length / 2 ? 0 : FIELD.length);
 
   // ¿Simulación?
   const contactLow = contactRaw < 0.4;
@@ -164,16 +167,23 @@ export function makeHandballIncident(match, player, shooter, facts) {
   const defGoalX = ownGoalX(match, player.side);
   const inBox = inPenaltyArea(player.pos, defGoalX < FIELD.length / 2 ? 0 : FIELD.length);
   const f = {
-    armDistanceFromBody: clamp(rng.float(0.1, 1) * (0.6 + player.player.aggression / 250), 0, 1),
+    armDistanceFromBody: clamp(rng.float(0.1, 1) * (0.6 + player.player.aggression / 250)
+      * (inBox ? 0.72 : 1), 0, 1),
     movementTowardsBall: rng.float(0, 1) * 0.8,
     distanceToShooter: shooter ? dist(player.pos, shooter.pos) : rng.float(2, 12),
-    armAboveShoulder: rng.bool(0.18),
-    deflectedOffOwnBody: rng.bool(0.28),
+    // Dentro de su propia área el defensor bloquea con los brazos pegados al
+    // cuerpo, y a bocajarro el balón le da antes en el cuerpo que en la mano.
+    // Sin esta distinción, el brazo por encima del hombro —que por reglamento
+    // siempre es infracción— convertía cada bloqueo en un penalti en potencia.
+    armAboveShoulder: rng.bool(inBox ? 0.045 : 0.18),
+    deflectedOffOwnBody: rng.bool(inBox ? 0.46 : 0.28),
     isAttacker: facts.isAttacker || false,
     leadsToGoal: facts.leadsToGoal || false,
     isGoalkeeperInBox: player.role === 'GK' && inBox,
     inBox,
-    deliberateStop: rng.bool(0.12),
+    // Parar el balón con la mano a propósito dentro de tu área es un acto
+    // desesperado y rarísimo: por reglamento es penalti seguro.
+    deliberateStop: rng.bool(inBox ? 0.018 : 0.12),
     ...facts,
   };
   const truth = RuleEngine.evaluateHandball(f);

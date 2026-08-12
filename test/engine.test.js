@@ -9,6 +9,7 @@ import { createReferee } from '../src/career/referee.js';
 import { makeAutoReferee } from '../src/ai/autoReferee.js';
 import { DIFFICULTY, FIELD, SIM } from '../src/core/config.js';
 import { RNG } from '../src/core/rng.js';
+import { makeChallengeIncident, makeHandballIncident } from '../src/match/incidents.js';
 
 const world = generateWorld('motor');
 const div = world.divisions.find((d) => d.id === 'primera');
@@ -36,6 +37,8 @@ function playMatch(opts = {}) {
   });
   const seen = { positions: true, phases: new Set() };
   engine.start();
+  // Algunas pruebas sólo necesitan un partido colocado, no jugado
+  if (opts.soloCrear) return { match, engine, report: null, seen };
 
   let guard = 0;
   while (!engine.finished && guard++ < 400000) {
@@ -155,6 +158,54 @@ export default suite('Motor de partido', (t) => {
       check(!!report.clips[ultima.incidentId],
         'la última jugada destacada debería tener repetición');
     }
+  });
+
+  t('dentro del área se defiende con más cuidado que fuera', () => {
+    // Lo que de verdad se fue de madre en la calibración fueron los penaltis:
+    // 0,63 por partido contra los 0,25 reales. La causa no era el reglamento,
+    // sino con qué frecuencia se daban los hechos que lo activan. Aquí se fija
+    // esa diferencia, que es barata y determinista de medir; el número final
+    // por partido se vigila con `node test/run.js 60`.
+    const { match } = playMatch({ seed: 900, home: 1, away: 4, soloCrear: true });
+    const dentroX = 8, fueraX = 45;
+
+    const medir = (x) => {
+      let faltas = 0, jugoBalon = 0;
+      const N = 600;
+      for (let i = 0; i < N; i++) {
+        const def = match.entities[3], att = match.entities[14];
+        def.pos = { x: x + 1.2, y: FIELD.width / 2 };
+        att.pos = { x, y: FIELD.width / 2 };
+        const inc = makeChallengeIncident(match, def, att, { diff: -3, speedDiff: 6 });
+        if (inc.truth.isFoul) faltas++;
+        if (inc.facts.playedBall) jugoBalon++;
+      }
+      return { faltas: faltas / N, jugoBalon: jugoBalon / N };
+    };
+
+    const area = medir(dentroX);
+    const centro = medir(fueraX);
+    check(area.jugoBalon > centro.jugoBalon + 0.15,
+      `en el área debería jugarse el balón mucho más (${(area.jugoBalon * 100).toFixed(0)}% vs ${(centro.jugoBalon * 100).toFixed(0)}%)`);
+    check(area.faltas < centro.faltas,
+      `en el área deberían pitarse menos faltas (${(area.faltas * 100).toFixed(0)}% vs ${(centro.faltas * 100).toFixed(0)}%)`);
+  });
+
+  t('la mano deliberada dentro del área es rarísima', () => {
+    const { match } = playMatch({ seed: 901, home: 2, away: 6, soloCrear: true });
+    const contar = (x) => {
+      let penaltis = 0;
+      const N = 800;
+      for (let i = 0; i < N; i++) {
+        const def = match.entities[4];
+        def.pos = { x, y: FIELD.width / 2 };
+        const inc = makeHandballIncident(match, def, null, {});
+        if (inc.truth.penalty) penaltis++;
+      }
+      return penaltis / N;
+    };
+    const area = contar(8);
+    check(area < 0.14, `demasiadas manos son penalti dentro del área: ${(area * 100).toFixed(0)}%`);
   });
 
   t('las medias de un partido son creíbles', () => {
