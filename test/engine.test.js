@@ -225,6 +225,35 @@ export default suite('Motor de partido', (t) => {
     check(cerca > 0.40, `pocos tiros desde dentro del área: ${(cerca * 100).toFixed(0)}%`);
   });
 
+  t('un penalti se marca tres de cada cuatro veces', () => {
+    // Con atributos fijos: si no, el resultado depende de qué lanzador y qué
+    // portero toquen, y varía diez puntos entre mundos. Aquí se mide el
+    // modelo, no la suerte del sorteo.
+    const { match, engine } = playMatch({ seed: 950, home: 3, away: 8, soloCrear: true, importance: 60 });
+    const lanzador = match.entities.find((e) => e.side === 0 && e.role !== 'GK');
+    const portero = match.entities.find((e) => e.side === 1 && e.role === 'GK');
+    Object.assign(lanzador.player, { shooting: 70, technique: 70 });
+    Object.assign(portero.player, { positioning: 70, technique: 70 });
+    // El lanzador elegido es el de más disparo: se rebaja al resto
+    for (const e of match.entities) {
+      if (e.side === 0 && e !== lanzador) e.player.shooting = 40;
+    }
+
+    let marcados = 0;
+    const N = 1200;
+    for (let i = 0; i < N; i++) {
+      const antes = match.score[0];
+      engine._takePenalty(0);
+      if (match.score[0] > antes) marcados++;
+      match.score[0] = 0; match.score[1] = 0;
+      match.phase = 'play';
+      match.restart = null;
+      match.clock = 600;
+    }
+    const tasa = marcados / N;
+    between(tasa, 0.71, 0.79, `los penaltis se marcan el ${(tasa * 100).toFixed(1)}% de las veces`);
+  });
+
   t('las medias de un partido son creíbles', () => {
     const agg = { goles: 0, faltas: 0, amarillas: 0, rojas: 0, corners: 0, tiros: 0, penaltis: 0 };
     const N = 6;

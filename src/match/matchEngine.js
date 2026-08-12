@@ -1349,7 +1349,9 @@ export class MatchEngine {
     const skill = shooter.player.shooting * 0.6 + shooter.player.technique * 0.4;
     const nerves = (m.importance / 200) + (Math.abs(m.score[0] - m.score[1]) <= 1 && m.clock > 75 * 60 ? 0.12 : 0);
     const gkSkill = gk ? (gk.player.positioning * 0.5 + gk.player.technique * 0.5) : 50;
-    const p = clamp(0.62 + skill / 260 - gkSkill / 420 - nerves * 0.18, 0.35, 0.94);
+    // Un penalti se marca en el 75-78% de los casos en el fútbol real; con la
+    // base anterior el lanzador tipo se quedaba en el 68%.
+    const p = clamp(0.70 + skill / 260 - gkSkill / 420 - nerves * 0.18, 0.35, 0.94);
     const scored = m.rng.next() < p;
     const gx = targetGoalX(m, side);
     if (scored) {

@@ -123,7 +123,7 @@ No son deudas: son límites elegidos y sostenidos.
 - **Vertical en el móvil.** En pantallas altas el campo se gira un cuarto de
   vuelta y llena el teléfono, en lugar de quedarse en una franja central. La
   dirección de la palanca y del mando gira con él.
-- **Batería de pruebas.** 86 pruebas sin dependencias (`node test/all.js`):
+- **Batería de pruebas.** 87 pruebas sin dependencias (`node test/all.js`):
   reglamento, sistemas y motor. Incluye las que evitan las regresiones que más
   caro salieron durante el desarrollo: partidos que no terminan, jugadores
   fuera del campo, posesión que no cuadra, equipaciones indistinguibles,
@@ -257,6 +257,19 @@ la conversión pasó del 6,2 % al 10,1 %, que es justo la real.
 
 El reparto por distancia queda fijado con una prueba (`test/engine.test.js`),
 verificada deshaciendo el arreglo para comprobar que falla de verdad.
+
+## El penalti que se lanza
+
+Con los penaltis ya en su frecuencia real, quedaba comprobar algo que nunca se
+había medido: cuántos se marcan. Salía el 72,3 % con atributos medios, contra
+el 75-78 % real. Poca cosa, pero corregible: la base pasa de 0,62 a 0,70 y el
+lanzador tipo se queda en el 74,8 %.
+
+La primera versión de la prueba no servía: medía el mundo del banco de
+pruebas, y la tasa variaba diez puntos según qué lanzador y qué portero
+tocaran (78,3 % en un mundo, 83,3 % en otro), así que no distinguía el valor
+viejo del nuevo. La definitiva fija los atributos y mide el modelo, no la
+suerte del sorteo.
 
 ## Qué no está y por qué
 
