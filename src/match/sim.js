@@ -534,8 +534,11 @@ function carrierAction(match, carrier, ctx, dt, hooks) {
     return;
   }
 
-  const shootUrge = sq * (0.7 + carrier.player.shooting / 160) * (press < 1.5 ? 1.15 : 0.75);
-  if (sq > 0.18 && match.rng.next() < shootUrge * 0.55) {
+  // La urgencia por disparar cae rápido con la distancia, no en línea recta:
+  // con la relación lineal, dos tercios de los tiros salían de fuera del área
+  // y la conversión se hundía. En el fútbol real la mitad salen de dentro.
+  const shootUrge = (sq ** 2.1) * (0.7 + carrier.player.shooting / 160) * (press < 1.5 ? 1.15 : 0.75);
+  if (sq > 0.24 && match.rng.next() < shootUrge * 1.35) {
     doShot(match, carrier, hooks);
     return;
   }

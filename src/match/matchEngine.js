@@ -346,7 +346,10 @@ export class MatchEngine {
     if (gk && !this._gkAlreadyTried) {
       const d = Math.abs(gk.pos.y - m.ball.pos.y);
       const reflex = gk.player.positioning * 0.5 + gk.player.technique * 0.3 + gk.player.strength * 0.2;
-      const saveP = clamp(0.62 - d / 14 + reflex / 320 - (m.weather.slip > 0.1 ? 0.06 : 0), 0.05, 0.9);
+      // Un portero bien colocado paraba el 84% de lo que le llegaba a puerta:
+      // demasiado. En el fútbol real se para en torno al 70%, y ese exceso se
+      // comía los goles cuando se corrigió el reparto de tiros.
+      const saveP = clamp(0.50 - d / 14 + reflex / 320 - (m.weather.slip > 0.1 ? 0.06 : 0), 0.05, 0.86);
       if (m.rng.next() < saveP) {
         m.stats[1 - scoringSide].saves++;
         m.stats[scoringSide].shotsOn++;

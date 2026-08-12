@@ -36,6 +36,10 @@ function playMatch(opts = {}) {
     autoReferee: makeAutoReferee({ skill: opts.skill ?? 75, rng: match.rng }),
   });
   const seen = { positions: true, phases: new Set() };
+  if (opts.onShot) {
+    const prev = engine.hooks.onShot;
+    engine.hooks.onShot = (carrier, target, d) => { opts.onShot(d); return prev && prev(carrier, target, d); };
+  }
   engine.start();
   // Algunas pruebas sólo necesitan un partido colocado, no jugado
   if (opts.soloCrear) return { match, engine, report: null, seen };
@@ -206,6 +210,19 @@ export default suite('Motor de partido', (t) => {
     };
     const area = contar(8);
     check(area < 0.14, `demasiadas manos son penalti dentro del área: ${(area * 100).toFixed(0)}%`);
+  });
+
+  t('se dispara sobre todo desde cerca, no desde la frontal', () => {
+    // Con una urgencia por disparar lineal en la distancia, dos tercios de los
+    // tiros salían de fuera del área y la conversión se hundía al 6%. Aquí se
+    // vigila el reparto, que es lo que de verdad se rompió.
+    const dist = [];
+    for (let i = 0; i < 6; i++) playMatch({ seed: 500 + i, home: i % 10, away: (i + 4) % 10, onShot: (d) => dist.push(d) });
+    check(dist.length > 80, `pocos tiros para medir: ${dist.length}`);
+    const lejanos = dist.filter((d) => d >= 22).length / dist.length;
+    const cerca = dist.filter((d) => d < 16).length / dist.length;
+    check(lejanos < 0.17, `demasiados tiros lejanos: ${(lejanos * 100).toFixed(0)}%`);
+    check(cerca > 0.40, `pocos tiros desde dentro del área: ${(cerca * 100).toFixed(0)}%`);
   });
 
   t('las medias de un partido son creíbles', () => {

@@ -34,14 +34,14 @@ automático con acierto 72%). Con 60 partidos, no con 8: los sucesos raros
 
 | Métrica | Silbato Cero | Fútbol real (referencia) |
 |---|---|---|
-| Goles | 2,33 | 2,7 |
-| Faltas | 21,9 | 22–26 |
-| Amarillas | 2,2 | 3–5 |
-| Rojas | 0,12 | 0,1–0,2 |
-| Penaltis | 0,35 | 0,25 |
-| Fueras de juego | 3,6 | 3–5 |
-| Córners | 11,2 | 9–11 |
-| Tiros | 31,6 | 24–28 |
+| Goles | 2,98 | 2,7 |
+| Faltas | 22,3 | 22–26 |
+| Amarillas | 2,6 | 3–5 |
+| Rojas | 0,27 | 0,1–0,2 |
+| Penaltis | 0,27 | 0,25 |
+| Fueras de juego | 3,8 | 3–5 |
+| Córners | 11,0 | 9–11 |
+| Tiros | 28,0 | 24–28 |
 
 Las amarillas salen por debajo del rango real a propósito: la diferencia son
 las que el árbitro automático no ve, que es exactamente lo que debe pasar. Los
@@ -123,7 +123,7 @@ No son deudas: son límites elegidos y sostenidos.
 - **Vertical en el móvil.** En pantallas altas el campo se gira un cuarto de
   vuelta y llena el teléfono, en lugar de quedarse en una franja central. La
   dirección de la palanca y del mando gira con él.
-- **Batería de pruebas.** 83 pruebas sin dependencias (`node test/all.js`):
+- **Batería de pruebas.** 86 pruebas sin dependencias (`node test/all.js`):
   reglamento, sistemas y motor. Incluye las que evitan las regresiones que más
   caro salieron durante el desarrollo: partidos que no terminan, jugadores
   fuera del campo, posesión que no cuadra, equipaciones indistinguibles,
@@ -232,6 +232,31 @@ Las dos primeras causas quedan fijadas con pruebas deterministas y baratas
 fallan de verdad. El número final por partido no se puede vigilar en una
 prueba unitaria sin volverla lenta o inestable: para eso está
 `node test/run.js 60`.
+
+## Los tiros y la conversión
+
+Corregidos los penaltis, la desviación que quedaba eran los tiros: 31,6 por
+partido contra los 24-28 reales, y encima con una conversión del 6 %, muy por
+debajo del 10 % real. Medir el reparto por distancia lo explicó todo:
+
+| Distancia | Antes | Ahora | Real |
+|---|---|---|---|
+| Dentro del área (<16 m) | 37 % | **51 %** | ~55 % |
+| Frontal (16-22 m) | 42 % | 39 % | ~30 % |
+| Lejanos (>22 m) | 22 % | **10 %** | <15 % |
+
+La causa: la urgencia por disparar era **lineal** en la calidad del tiro, así
+que un jugador a 25 metros disparaba casi tanto como uno a 12. Ahora cae con
+el cuadrado largo de la calidad (`sq ** 2.1`) y hay un mínimo por debajo del
+cual no se dispara. Tiros: 31,6 → 28,0.
+
+Al bajar los tiros lejanos bajaron también los goles, y apareció el segundo
+problema: **el portero paraba el 84 %** de lo que le llegaba a puerta, cuando
+en el fútbol real se para en torno al 70 %. Con la base de parada corregida,
+la conversión pasó del 6,2 % al 10,1 %, que es justo la real.
+
+El reparto por distancia queda fijado con una prueba (`test/engine.test.js`),
+verificada deshaciendo el arreglo para comprobar que falla de verdad.
 
 ## Qué no está y por qué
 
