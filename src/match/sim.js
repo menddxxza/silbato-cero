@@ -498,7 +498,7 @@ function doShot(match, carrier, hooks) {
   const acc = carrier.player.shooting * 0.65 + carrier.player.technique * 0.35;
   const press = pressureOn(match, carrier);
   const spread = (1.05 - acc / 110) * (1 + press * 0.4) * (1 + (100 - carrier.stamina) / 220);
-  const targetY = gy + match.rng.gauss(0, 3.4 * spread);
+  const targetY = gy + match.rng.gauss(0, 4.3 * spread);
   const dx = gx - carrier.pos.x, dy = targetY - carrier.pos.y;
   const d = Math.hypot(dx, dy) || 1;
   const speed = clamp(19 + acc / 6 + match.rng.gauss(0, 2.5), 14, 34);

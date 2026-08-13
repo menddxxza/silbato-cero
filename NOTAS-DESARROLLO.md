@@ -40,14 +40,16 @@ importancia 95, y eso inflaba goles, tarjetas y penaltis sin que se notara.
 
 | Métrica | Silbato Cero | Fútbol real (referencia) |
 |---|---|---|
-| Goles | 2,85 | 2,7 |
-| Faltas | 24,2 | 22–26 |
-| Amarillas | 3,5 | 3–5 |
-| Rojas | 0,08 | 0,1–0,2 |
-| Penaltis | 0,17 | 0,25 |
-| Fueras de juego | 3,3 | 3–5 |
-| Córners | 10,6 | 9–11 |
-| Tiros | 25,1 | 24–28 |
+| Goles | 2,60 | 2,7 |
+| Faltas | 22,4 | 22–26 |
+| Amarillas | 3,1 | 3–5 |
+| Rojas | 0,17 | 0,1–0,2 |
+| Penaltis | 0,18 | 0,25 |
+| Fueras de juego | 3,0 | 3–5 |
+| Córners | 9,7 | 9–11 |
+| Tiros | 24,8 | 24–28 |
+| — de ellos a puerta | 37% | ~33% |
+| — paradas del portero | 67% | ~70% |
 | Llamadas del VAR | 0,28 | ~0,3 |
 
 Ocho de ocho dentro de rango. Los penaltis rozan por abajo (0,18 frente a
@@ -463,6 +465,50 @@ seguir → aviso en pantalla → sala de revisión → decisión corregida → p
 
 Los penaltis quedan en 0,17-0,20 frente a los 0,25 reales. La diferencia son
 tres sucesos en sesenta partidos: por debajo del ruido de la medición.
+
+## El embudo del tiro, no el número de goles
+
+Los goles se habían ido a **2,85 por partido** (real 2,7). La tentación
+evidente era bajar la probabilidad de gol y dejarlo ahí. En vez de eso se midió
+el embudo entero, que es donde se ve si el número correcto sale de un proceso
+correcto o de una compensación:
+
+| | Silbato Cero | Fútbol real |
+|---|---|---|
+| Tiros | 25,1 | 24–28 |
+| A puerta | 10,0 (**39,8%**) | ~33% |
+| Paradas | 6,1 (**61%** de los que van a puerta) | ~70% |
+| Goles | 2,85 | 2,7 |
+
+Los tiros estaban bien. Lo que estaba mal eran las dos etapas de dentro, y en
+sentidos opuestos: se disparaba **demasiado afinado** y el portero **paraba
+poco**. Dos errores que se tapaban a medias y dejaban un total sólo un poco
+alto. Bajar la conversión habría dado 2,7 goles con un fútbol falso debajo:
+tiros teledirigidos que un portero flojo encaja.
+
+Los dos arreglos van a la causa de cada etapa:
+
+1. **La puntería era de videojuego.** La desviación del disparo era de 3,4 m
+   con la portería midiendo 7,32: casi todo iba entre palos. Subida a 4,3 m,
+   los tiros a puerta pasan del 39,8% al **33,8%** — el resto se va fuera o lo
+   bloquea un defensor, que es lo que pasa en un campo.
+2. **El portero paraba como un aficionado.** La base era 0,545 y caía muy
+   rápido con la distancia (`d / 14`), así que cualquier tiro de cerca era gol.
+   Subida a 0,585 con una caída más suave (`d / 18`) y tope 0,88: las paradas
+   suben al **67%**.
+
+Resultado a 60 partidos: **2,60 goles**, 24,8 tiros, 37% a puerta, 67% de
+paradas. Las cuatro etapas del embudo dentro de rango a la vez, y el resto de
+las medias sin tocarse.
+
+De paso saltó otra prueba mal diseñada, y esta era mía: «la eliminatoria
+empatada llega a prórroga o penaltis» jugaba cinco eliminatorias y esperaba que
+alguna acabase en empate. La probabilidad de que ninguna lo hiciera es del 24%,
+así que fallaba una de cada cuatro ejecuciones sin que nada estuviese roto.
+Ahora comprueba el invariante de verdad —**de una eliminatoria sale siempre un
+ganador**, y no se llega a los penaltis sin jugar la prórroga— en cada partido,
+y busca seeds hasta dar con una prórroga. Verificado quitando el modo
+eliminatoria: la prueba falla al segundo partido.
 
 ## Qué no está y por qué
 

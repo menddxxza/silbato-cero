@@ -104,16 +104,26 @@ export default suite('Motor de partido', (t) => {
     check(match.clock / 60 > 90, 'debería jugarse algo de descuento');
   });
 
-  t('la eliminatoria empatada llega a prórroga o penaltis', () => {
-    let vistos = 0;
-    for (const seed of [3, 8, 15, 23, 42]) {
+  t('una eliminatoria nunca acaba en empate', () => {
+    // La versión anterior de esta prueba jugaba cinco eliminatorias y esperaba
+    // que alguna acabase empatada. Como una de cada cuatro veces ninguna lo
+    // hacía, fallaba por azar sin que nada estuviese roto. Ahora se comprueba
+    // el invariante de verdad —de una eliminatoria sale siempre un ganador— y
+    // se buscan seeds hasta dar con una que se vaya a la prórroga.
+    let conProrroga = 0;
+    for (let seed = 1; seed <= 24 && conProrroga < 1; seed++) {
       const { match } = playMatch({ seed, knockout: true });
-      if (match.shootout || match.half >= 3) vistos++;
+      const [a, b] = match.score;
+      if (a === b) {
+        check(!!match.shootout, `la eliminatoria ${seed} acabó ${a}-${b} sin tanda de penaltis`);
+      }
       if (match.shootout) {
+        check(match.half >= 3, 'no se puede llegar a los penaltis sin jugar la prórroga');
         check(match.shootout.score[0] !== match.shootout.score[1], 'la tanda debe tener ganador');
       }
+      if (match.shootout || match.half >= 3) conProrroga++;
     }
-    check(vistos >= 1, 'ninguna eliminatoria pasó del tiempo reglamentario en cinco intentos');
+    check(conProrroga >= 1, 'ninguna de las 24 eliminatorias pasó del tiempo reglamentario');
   });
 
   t('cada decisión queda registrada con su calificación', () => {

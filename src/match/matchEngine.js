@@ -356,7 +356,10 @@ export class MatchEngine {
       // Un portero bien colocado paraba el 84% de lo que le llegaba a puerta:
       // demasiado. En el fútbol real se para en torno al 70%, y ese exceso se
       // comía los goles cuando se corrigió el reparto de tiros.
-      const saveP = clamp(0.545 - d / 14 + reflex / 320 - (m.weather.slip > 0.1 ? 0.06 : 0), 0.05, 0.86);
+      // El portero llega a más de lo que decía el modelo anterior: penalizaba
+      // tanto la distancia lateral que un tiro abierto era casi gol seguro.
+      // En el fútbol real se para en torno al 70% de lo que va entre palos.
+      const saveP = clamp(0.585 - d / 18 + reflex / 320 - (m.weather.slip > 0.1 ? 0.06 : 0), 0.05, 0.88);
       if (m.rng.next() < saveP) {
         m.stats[1 - scoringSide].saves++;
         m.stats[scoringSide].shotsOn++;
