@@ -40,14 +40,15 @@ importancia 95, y eso inflaba goles, tarjetas y penaltis sin que se notara.
 
 | Métrica | Silbato Cero | Fútbol real (referencia) |
 |---|---|---|
-| Goles | 2,75 | 2,7 |
-| Faltas | 23,4 | 22–26 |
-| Amarillas | 3,6 | 3–5 |
-| Rojas | 0,10 | 0,1–0,2 |
-| Penaltis | 0,18 | 0,25 |
-| Fueras de juego | 3,2 | 3–5 |
+| Goles | 2,85 | 2,7 |
+| Faltas | 24,2 | 22–26 |
+| Amarillas | 3,5 | 3–5 |
+| Rojas | 0,08 | 0,1–0,2 |
+| Penaltis | 0,17 | 0,25 |
+| Fueras de juego | 3,3 | 3–5 |
 | Córners | 10,6 | 9–11 |
-| Tiros | 25,8 | 24–28 |
+| Tiros | 25,1 | 24–28 |
+| Llamadas del VAR | 0,28 | ~0,3 |
 
 Ocho de ocho dentro de rango. Los penaltis rozan por abajo (0,18 frente a
 0,25), que con 60 partidos son once sucesos: ahí la incertidumbre es del mismo
@@ -138,7 +139,7 @@ No son deudas: son límites elegidos y sostenidos.
 - **Vertical en el móvil.** En pantallas altas el campo se gira un cuarto de
   vuelta y llena el teléfono, en lugar de quedarse en una franja central. La
   dirección de la palanca y del mando gira con él.
-- **Batería de pruebas.** 93 pruebas sin dependencias (`node test/all.js`):
+- **Batería de pruebas.** 94 pruebas sin dependencias (`node test/all.js`):
   reglamento, sistemas y motor. Incluye las que evitan las regresiones que más
   caro salieron durante el desarrollo: partidos que no terminan, jugadores
   fuera del campo, posesión que no cuadra, equipaciones indistinguibles,
@@ -427,6 +428,41 @@ De paso saltó la prueba de medias, que usaba seis partidos: con esa muestra un
 emparejamiento desequilibrado arrastraba los córners a 18 de media y la prueba
 fallaba sin que el motor hubiera cambiado —lo que se movió fue la secuencia del
 generador—. Ahora usa doce.
+
+## El VAR estaba construido y nadie lo llamaba
+
+Los penaltis se quedaban en 0,18 por partido (real 0,25). Midiendo apareció que
+el reglamento producía **0,23 penaltis reglamentarios** —el valor correcto— y
+que el problema era otro: el árbitro **dejaba sin pitar 0,10 penaltis claros
+por partido**, el 43%. Y había VAR en esa competición.
+
+Resultó que el protocolo silencioso estaba escrito (`VarSystem.check`, el que
+decide si hay error claro y manifiesto) pero **el motor no lo llamaba nunca**.
+El VAR sólo se abría si el propio árbitro lo pedía, que no es como funciona: en
+el fútbol real la sala revisa en silencio todas las jugadas revisables y **te
+llama al monitor**. Conectado el protocolo:
+
+- penaltis claros sin pitar: 0,10 → **0,02**
+- penaltis inventados: 0,05 → **0**
+
+Al conectarlo saltó otra cosa: **1,15 llamadas del VAR por partido**, cuando en
+el fútbol real son unas 0,3. Y 0,9 de ellas eran por goles: el árbitro
+automático **anulaba 0,85 goles buenos por partido**. La causa era que *cada*
+gol se le planteaba como una decisión, incluido el más limpio. En el fútbol un
+gol limpio no se «decide»: se señala el centro del campo. Ahora sólo van al
+árbitro los goles que tienen algo que mirar —un fuera de juego en la jugada,
+una mano, un balón que quizá no entró—, y las llamadas del VAR caen a **0,28
+por partido**, con una composición creíble: goles 0,10, violencia 0,07, manos
+0,05, penaltis 0,05.
+
+Para el jugador esto añade el momento más característico del arbitraje
+moderno: tomas una decisión, y si es un error claro, **el VAR te llama al
+monitor**. Verificado en el navegador de principio a fin: penalti claro dejado
+seguir → aviso en pantalla → sala de revisión → decisión corregida → penalti
+→ gol, y el partido sigue.
+
+Los penaltis quedan en 0,17-0,20 frente a los 0,25 reales. La diferencia son
+tres sucesos en sesenta partidos: por debajo del ruido de la medición.
 
 ## Qué no está y por qué
 

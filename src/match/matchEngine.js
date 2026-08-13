@@ -356,7 +356,7 @@ export class MatchEngine {
       // Un portero bien colocado paraba el 84% de lo que le llegaba a puerta:
       // demasiado. En el fútbol real se para en torno al 70%, y ese exceso se
       // comía los goles cuando se corrigió el reparto de tiros.
-      const saveP = clamp(0.50 - d / 14 + reflex / 320 - (m.weather.slip > 0.1 ? 0.06 : 0), 0.05, 0.86);
+      const saveP = clamp(0.545 - d / 14 + reflex / 320 - (m.weather.slip > 0.1 ? 0.06 : 0), 0.05, 0.86);
       if (m.rng.next() < saveP) {
         m.stats[1 - scoringSide].saves++;
         m.stats[scoringSide].shotsOn++;
@@ -389,6 +389,21 @@ export class MatchEngine {
     };
     const inc = makeGoalIncident(m, scorer, facts);
     m.ball.vel.x = 0; m.ball.vel.y = 0; m.ball.owner = null;
+
+    // Un gol limpio no se «decide»: se señala el centro del campo. Sólo van al
+    // árbitro los que tienen algo que mirar —un fuera de juego en la jugada,
+    // una mano, un balón que quizá no entró—. Preguntando por todos, el
+    // árbitro automático anulaba 0,85 goles buenos por partido y el VAR tenía
+    // que rescatarlos: 1,15 llamadas por partido contra las 0,3 reales.
+    // Que el árbitro esté lejos no hace dudoso un gol: el balón está dentro y
+    // lo ve todo el estadio. Es dudoso cuando hay algo que mirar.
+    const limpio = inc.truth.goal && !closeCall
+      && !facts.offsideInBuildUp && !facts.handballInBuildUp && !facts.foulInBuildUp;
+    if (limpio) {
+      inc.auto = true;
+      this._applyDecision(inc, { action: 'goal', auto: true }, { silent: true });
+      return;
+    }
     this._raise(inc);
   }
 
@@ -755,7 +770,52 @@ export class MatchEngine {
       this._openVar(incident, payload);
       return;
     }
+
+    // Protocolo VAR: la sala revisa en silencio TODAS las jugadas revisables
+    // y llama al árbitro cuando hay un error claro y manifiesto. Es como
+    // funciona de verdad —el árbitro no pide la revisión, se la piden— y sin
+    // esto el VAR sólo existía si el propio árbitro lo pedía: se quedaban sin
+    // corregir 0,10 penaltis claros por partido.
+    if (!incident.varReviewed && this.var.available()
+      && RuleEngine.isVarReviewable(incident)) {
+      const veredicto = this.var.check(incident, payload);
+      if (veredicto.intervene) {
+        incident.varReviewed = true;
+        incident.varCalled = true;
+        this.emit('var:calls', { incident, onField: payload, reason: veredicto.reason });
+        this.logEvent('varCall', { minute: incident.minute });
+        this._openVar(incident, { ...payload, preDecision: payload });
+        return;
+      }
+    }
+
     this._applyDecision(incident, payload);
+  }
+
+  /**
+   * Lo que dice la repetición. La sala VAR ve la jugada a cámara lenta: su
+   * veredicto es el del reglamento. Que se equivoque o no al decidir si
+   * interviene ya lo modela `var.check`.
+   */
+  _varVerdict(incident) {
+    const t = incident.truth || {};
+    switch (incident.type) {
+      case 'challenge':
+      case 'penaltyShout':
+        if (t.simulation) return { action: 'dive', card: 'yellow' };
+        if (!t.isFoul) return { action: 'playon' };
+        if (t.penalty || incident.inBox) return { action: 'penalty', card: t.card || null };
+        return { action: 'foul', card: t.card || null };
+      case 'handball':
+        if (!t.offence) return { action: 'playon' };
+        return incident.inBox ? { action: 'penalty' } : { action: 'handball' };
+      case 'offside':
+        return t.offside ? { action: 'offside' } : { action: 'playon' };
+      case 'goal':
+        return t.goal ? { action: 'goal' } : { action: 'noGoal' };
+      default:
+        return incident.decisionTaken || { action: 'playon' };
+    }
   }
 
   _openVar(incident, payload) {
@@ -765,6 +825,27 @@ export class MatchEngine {
       return;
     }
     m.phase = 'var';
+
+    // Sin jugador humano no hay quien conduzca la revisión: el árbitro
+    // automático atiende la llamada y sigue lo que dice la repetición.
+    if (this.autoReferee) {
+      const preDecision = payload.preDecision || payload;
+      this.var.open(incident, {
+        preDecision,
+        onClose: (result) => {
+          m.phase = 'decision';
+          incident.varUsed = true;
+          incident.varResult = result;
+          m.stats[0].varReviews = (m.stats[0].varReviews || 0) + 1;
+          m.stoppage += 65 + m.rng.float(0, 45);
+          this.rating.recordVar(incident, result);
+          if (result.finalPayload) this._applyDecision(incident, result.finalPayload);
+        },
+      });
+      this.var.close(this._varVerdict(incident));
+      return;
+    }
+
     this.var.open(incident, {
       preDecision: payload.preDecision || null,
       onClose: (result) => {

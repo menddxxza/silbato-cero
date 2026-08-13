@@ -186,6 +186,7 @@ export const en = {
   'assistant.ar1': 'Assistant 1',
   'assistant.ar2': 'Assistant 2',
   'assistant.fourth': 'Fourth official',
+  'var.calls': 'VAR IS CALLING YOU TO THE MONITOR',
   'var.title': 'VAR ROOM',
   'var.check': 'VAR check',
   'var.review': 'On-field review',

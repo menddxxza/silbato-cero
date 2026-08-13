@@ -601,6 +601,13 @@ export class Game {
       setTimeout(() => { this._flagUp = null; }, 2500);
     });
 
+    // El VAR revisa en silencio y llama cuando ve un error claro: eso no es
+    // lo mismo que pedirlo tú, y el jugador tiene que enterarse.
+    engine.on('var:calls', () => {
+      hud.toast(`📺 ${t('var.calls')}`, 'accent', 4000);
+      this.audio.varBeep(true);
+    });
+
     engine.on('var:open', ({ session }) => {
       this.audio.varBeep(true);
       hud.hideDecision();

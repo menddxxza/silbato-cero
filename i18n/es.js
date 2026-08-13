@@ -197,6 +197,7 @@ export const es = {
   'assistant.ar1': 'Asistente 1',
   'assistant.ar2': 'Asistente 2',
   'assistant.fourth': 'Cuarto árbitro',
+  'var.calls': 'EL VAR TE LLAMA AL MONITOR',
   'var.title': 'SALA VAR',
   'var.check': 'Comprobación VAR',
   'var.review': 'Revisión en monitor',

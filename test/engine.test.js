@@ -399,6 +399,54 @@ export default suite('Motor de partido', (t) => {
       `los jugadores deberían guardar su rastro para el marcaje: sólo ${conHistoria}`);
   });
 
+  t('el VAR llama al árbitro ante un error claro', () => {
+    // El protocolo real: la sala revisa en silencio TODAS las jugadas
+    // revisables y llama cuando hay un error claro y manifiesto. El árbitro no
+    // pide la revisión, se la piden. Sin esto el VAR sólo existía si el propio
+    // árbitro lo pedía, y se quedaban sin corregir 0,10 penaltis claros por
+    // partido; con ello, las llamadas caen a 0,28 por partido (real ~0,3).
+    const { match, engine } = playMatch({ seed: 995, home: 2, away: 5, soloCrear: true });
+    const def = match.entities.find((e) => e.side === 1 && e.role === 'DF');
+    const att = match.entities.find((e) => e.side === 0 && e.role === 'FW');
+
+    const penaltiClaro = () => {
+      const inc = makeChallengeIncident(match, def, att, { diff: -30, speedDiff: 9 });
+      inc.truth = { ...inc.truth, isFoul: true, penalty: true, restart: 'penalty', card: null };
+      inc.inBox = true;
+      inc.reviewable = true;
+      return inc;
+    };
+
+    // Dejar seguir un penalti de manual: error claro
+    let llamadas = 0;
+    engine.on('var:calls', () => { llamadas++; });
+    let intentos = 0;
+    while (llamadas === 0 && intentos++ < 40) {
+      const inc = penaltiClaro();
+      engine.pending = { incident: inc, options: [], timeLeft: 8 };
+      match.pending = engine.pending;
+      engine.decide({ action: 'playon' });
+      if (engine.var.session) engine.var.close({ action: 'penalty' });
+      if (engine.pendingCards) engine.decide({ card: null });
+    }
+    check(llamadas > 0, 'el VAR debería llamar ante un penalti claro no pitado');
+
+    // Y no llamar cuando la decisión es la correcta
+    let llamadasCorrectas = 0;
+    engine.on('var:calls', () => { llamadasCorrectas++; });
+    const antes = llamadas;
+    for (let i = 0; i < 25; i++) {
+      const inc = penaltiClaro();
+      engine.pending = { incident: inc, options: [], timeLeft: 8 };
+      match.pending = engine.pending;
+      engine.decide({ action: 'penalty' });
+      if (engine.var.session) engine.var.close({ action: 'penalty' });
+      if (engine.pendingCards) engine.decide({ card: null });
+      match.score[0] = 0; match.score[1] = 0;
+    }
+    check(llamadas === antes, `no debería llamar con la decisión correcta (llamó ${llamadas - antes} veces)`);
+  });
+
   t('las medias de un partido son creíbles', () => {
     const agg = { goles: 0, faltas: 0, amarillas: 0, rojas: 0, corners: 0, tiros: 0, penaltis: 0 };
     // Doce partidos, no seis: con seis, un emparejamiento desequilibrado

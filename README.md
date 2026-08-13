@@ -60,7 +60,7 @@ subir nada y dónde vive cada cosa. Lo esencial:
 ## Pruebas
 
 ```bash
-node test/all.js       # 93 pruebas: reglamento, sistemas y motor
+node test/all.js       # 94 pruebas: reglamento, sistemas y motor
 node test/all.js -v    # con el detalle de cada prueba
 node test/run.js 60      # 60 partidos de una jornada de liga normal
 node test/run.js 40 copa # eliminatorias y partidos calientes: todo sube
@@ -74,7 +74,7 @@ node test/run.js 40 copa # eliminatorias y partidos calientes: todo sube
   inexistente. También que los efectos del campo caduquen, que el movimiento
   se apague con `prefers-reduced-motion` y que la caché sin conexión liste
   exactamente los ficheros que hay en disco.
-- **Motor** (26): invariantes del partido (nadie sale del campo, la posesión
+- **Motor** (27): invariantes del partido (nadie sale del campo, la posesión
   cuadra, nunca quedan menos de siete jugadores, el mismo partido con la misma
   semilla da el mismo resultado) y que las medias caen en rangos creíbles.
 
@@ -142,7 +142,9 @@ Ventaja real (con memoria del infractor para amonestarlo después) · tarjetas c
 advertencia verbal previa · manos evaluadas por posición del brazo, distancia y
 naturalidad · fuera de juego con asistentes falibles que pueden dudar · VAR con
 cuatro cámaras, control de reproducción fotograma a fotograma, línea de fuera de
-juego y protocolo de error claro y manifiesto · tecnología de línea de gol ·
+juego y **protocolo real: la sala revisa en silencio todas las jugadas
+revisables y te llama al monitor cuando ve un error claro y manifiesto** ·
+tecnología de línea de gol ·
 bloqueos y rechaces dentro del área · remates de cabeza · barrera a 9,15 m en
 las faltas y área llena en los córners · reiteración de faltas · pérdida de
 tiempo del equipo que va ganando ·
@@ -263,6 +265,6 @@ palabra en castellano.
 
 ## Estado
 
-Terminado y jugable de principio a fin, con 93 pruebas automáticas en verde.
+Terminado y jugable de principio a fin, con 94 pruebas automáticas en verde.
 El detalle de lo que quedó dentro y lo que se decidió dejar fuera está en
 `NOTAS-DESARROLLO.md`.
