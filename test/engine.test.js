@@ -401,7 +401,10 @@ export default suite('Motor de partido', (t) => {
 
   t('las medias de un partido son creíbles', () => {
     const agg = { goles: 0, faltas: 0, amarillas: 0, rojas: 0, corners: 0, tiros: 0, penaltis: 0 };
-    const N = 6;
+    // Doce partidos, no seis: con seis, un emparejamiento desequilibrado
+    // arrastraba la media fuera de rango y la prueba saltaba sin que el motor
+    // hubiera cambiado. La calibración fina se mide con `node test/run.js 60`.
+    const N = 12;
     for (let i = 0; i < N; i++) {
       const { report } = playMatch({ seed: 200 + i, home: i % 10, away: (i + 5) % 10 });
       agg.goles += report.score[0] + report.score[1];
@@ -416,7 +419,7 @@ export default suite('Motor de partido', (t) => {
     between(agg.faltas / N, 12, 34, 'faltas por partido fuera de rango');
     between(agg.amarillas / N, 0.8, 6, 'amarillas por partido fuera de rango');
     between(agg.rojas / N, 0, 1.2, 'rojas por partido fuera de rango');
-    between(agg.corners / N, 4, 16, 'córners por partido fuera de rango');
+    between(agg.corners / N, 4, 16, `córners por partido fuera de rango: ${(agg.corners / N).toFixed(1)}`);
     between(agg.tiros / N, 14, 45, 'tiros por partido fuera de rango');
     between(agg.penaltis / N, 0, 1.2, 'penaltis por partido fuera de rango');
   });

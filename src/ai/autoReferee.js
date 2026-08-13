@@ -75,9 +75,20 @@ export function makeAutoReferee(opts = {}) {
       case 'goal':
         return (sees ? truth.goal : !truth.goal) ? { action: 'goal' } : { action: 'noGoal' };
       case 'dissent':
-        return truth.card === 'yellow' && sees ? { action: 'card', card: 'yellow' } : { action: 'warning' };
-      case 'timewasting':
-        return truth.card === 'yellow' && sees ? { action: 'card', card: 'yellow' } : { action: 'warning' };
+      case 'timewasting': {
+        if (!(truth.card === 'yellow' && sees)) return { action: 'warning' };
+        // A quien ya está amonestado no se le saca la segunda por protestar o
+        // por demorar un saque: se le advierte, y todo el mundo lo entiende.
+        // Dejar a un equipo con diez por una falta blanda es lo que los
+        // árbitros evitan, y era de donde salían dos de cada tres expulsiones
+        // (0,23 rojas por partido frente a las 0,1-0,2 reales).
+        const infractor = match && match.entities
+          && match.entities.find((e) => e.id === inc.offenderId);
+        if (infractor && infractor.yellow >= 1 && doubt() < 0.62) {
+          return { action: 'warning' };
+        }
+        return { action: 'card', card: 'yellow' };
+      }
       case 'violence':
         return sees ? { action: 'card', card: 'red' } : { action: 'card', card: 'yellow' };
       case 'injury':

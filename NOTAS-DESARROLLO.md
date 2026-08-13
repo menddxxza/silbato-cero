@@ -40,14 +40,18 @@ importancia 95, y eso inflaba goles, tarjetas y penaltis sin que se notara.
 
 | Métrica | Silbato Cero | Fútbol real (referencia) |
 |---|---|---|
-| Goles | 2,70 | 2,7 |
-| Faltas | 23,3 | 22–26 |
-| Amarillas | 3,7 | 3–5 |
-| Rojas | 0,23 | 0,1–0,2 |
-| Penaltis | 0,20 | 0,25 |
+| Goles | 2,75 | 2,7 |
+| Faltas | 23,4 | 22–26 |
+| Amarillas | 3,6 | 3–5 |
+| Rojas | 0,10 | 0,1–0,2 |
+| Penaltis | 0,18 | 0,25 |
 | Fueras de juego | 3,2 | 3–5 |
-| Córners | 10,7 | 9–11 |
-| Tiros | 26,3 | 24–28 |
+| Córners | 10,6 | 9–11 |
+| Tiros | 25,8 | 24–28 |
+
+Ocho de ocho dentro de rango. Los penaltis rozan por abajo (0,18 frente a
+0,25), que con 60 partidos son once sucesos: ahí la incertidumbre es del mismo
+tamaño que la diferencia.
 
 Con 60 partidos, la incertidumbre de estas medias es de ±0,25 en los goles y
 ±0,10 en las rojas: por debajo de eso, mover una constante es mover ruido.
@@ -403,6 +407,26 @@ Siete de las ocho medias dentro del rango real, y los goles clavados. La
 lección, que vale más que el número: cuatro síntomas que parecían
 independientes —pocos fueras de juego, pocas faltas, ningún balón a la
 espalda, pocas ocasiones— eran el mismo fallo, y estaba en la capa de abajo.
+
+## La segunda amarilla barata
+
+Las rojas se quedaron en 0,23 por partido (real 0,1-0,2). Ya se sabía que
+todas eran segundas amarillas y ninguna directa, pero un intento anterior de
+que el árbitro fuera reticente **no había hecho absolutamente nada**. Midiendo
+por dónde se decide cada tarjeta apareció el porqué: de catorce segundas
+amarillas, **sólo cuatro se deciden en la fase de tarjeta** —donde estaba el
+filtro— y **diez en la propia decisión**. El filtro apuntaba a la vía
+equivocada.
+
+Y de esas diez, ninguna era por una entrada: eran **por protestar y por perder
+tiempo**. Un árbitro no deja a un equipo con diez por una falta blanda cuando
+el jugador ya tiene una amarilla: advierte, y todo el mundo lo entiende. Ahora
+el árbitro automático hace eso, y las rojas bajan a **0,10**.
+
+De paso saltó la prueba de medias, que usaba seis partidos: con esa muestra un
+emparejamiento desequilibrado arrastraba los córners a 18 de media y la prueba
+fallaba sin que el motor hubiera cambiado —lo que se movió fue la secuencia del
+generador—. Ahora usa doce.
 
 ## Qué no está y por qué
 
