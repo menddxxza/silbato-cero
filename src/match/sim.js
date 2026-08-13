@@ -597,7 +597,7 @@ function tryTackles(match, ctx, dt, hooks) {
     const ownGoal = attackDir(match, def.side) > 0 ? 0 : L;
     const inOwnBox = Math.abs(def.pos.x - ownGoal) < 17 && Math.abs(def.pos.y - W / 2) < 20.2;
     const caution = tackleCaution(def, inOwnBox);
-    const eager = (0.055 + tac.aggression * 0.10 + def.player.aggression / 900
+    const eager = (0.068 + tac.aggression * 0.10 + def.player.aggression / 900
       + (def.mood === 'frustrated' ? 0.08 : 0) + (def.mood === 'aggressive' ? 0.05 : 0)) * caution;
     if (match.rng.next() > eager) { def.tackleCd = 1.2; continue; }
 

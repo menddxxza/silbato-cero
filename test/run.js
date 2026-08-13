@@ -11,6 +11,13 @@ import { DIFFICULTY } from '../src/core/config.js';
 import { RNG } from '../src/core/rng.js';
 
 const N = Number(process.argv[2] || 5);
+// Por defecto se simula una jornada de liga normal: 90 minutos, sin
+// eliminatorias y con la temperatura media de un partido cualquiera. Es lo que
+// juega el jugador la mayor parte del tiempo, y por tanto con lo que hay que
+// comparar las medias reales. `node test/run.js 40 copa` mide el otro extremo:
+// eliminatorias con prórroga y partidos calientes, donde todo sube.
+const MODO = (process.argv[3] || 'liga').toLowerCase();
+const COPA = MODO === 'copa';
 const world = generateWorld('test-world');
 const div = world.divisions.find((d) => d.id === 'primera');
 const clubs = div.clubIds.map((id) => world.clubs[id]);
@@ -32,11 +39,12 @@ for (let i = 0; i < N; i++) {
   const referee = createReferee({ seed: `ref-${i}`, baseLevel: 68 });
   const match = createMatch({
     home, away, competition: div, seed: 1000 + i,
-    weather: rng.pick(['clear', 'rain', 'wind', 'storm']),
-    importance: rng.int(30, 95), rivalry: rng.int(0, 90),
+    weather: rng.pick(COPA ? ['clear', 'rain', 'wind', 'storm'] : ['clear', 'clear', 'clear', 'rain', 'wind']),
+    importance: COPA ? rng.int(70, 95) : rng.int(35, 65),
+    rivalry: COPA ? rng.int(50, 90) : rng.int(0, 40),
     difficulty: DIFFICULTY.normal, referee,
     crew: generateCrew(rng, div.level, true), varEnabled: true,
-    knockout: i % 3 === 0,
+    knockout: COPA && i % 3 === 0,
   });
 
   const engine = new MatchEngine(match, {
@@ -95,7 +103,7 @@ for (let i = 0; i < N; i++) {
 }
 
 const n = N;
-console.log('\n— MEDIAS POR PARTIDO —');
+console.log(`\n— MEDIAS POR PARTIDO (${COPA ? 'copa: eliminatorias y partidos calientes' : 'jornada de liga normal'}) —`);
 console.log(`goles      ${(agg.goals / n).toFixed(2)}`);
 console.log(`faltas     ${(agg.fouls / n).toFixed(1)}`);
 console.log(`amarillas  ${(agg.yellows / n).toFixed(1)}`);

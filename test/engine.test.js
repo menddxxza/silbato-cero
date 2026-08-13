@@ -285,6 +285,24 @@ export default suite('Motor de partido', (t) => {
       'dentro del área se entra mucho menos que fuera');
   });
 
+  t('la segunda amarilla enseña también la roja', () => {
+    // Emitiendo sólo la amarilla, la interfaz expulsaba a un jugador mientras
+    // en pantalla salía una cartulina amarilla: la roja no aparecía nunca.
+    const { match, engine } = playMatch({ seed: 970, home: 1, away: 6, soloCrear: true });
+    const jugador = match.entities.find((e) => e.side === 0 && e.role === 'DF');
+    const vistas = [];
+    engine.on('card', ({ card }) => vistas.push(card));
+    const inc = { truth: { cardReason: 'foul.recklessTackle' } };
+
+    engine._giveCard(jugador, 'yellow', inc);
+    check(vistas.join(',') === 'yellow', `la primera debería ser sólo amarilla: ${vistas}`);
+
+    vistas.length = 0;
+    engine._giveCard(jugador, 'yellow', inc);
+    check(vistas.join(',') === 'yellow,red', `la segunda debería enseñar amarilla y roja: ${vistas}`);
+    check(jugador.red === true && jugador.onPitch === false, 'y dejarlo fuera del campo');
+  });
+
   t('las medias de un partido son creíbles', () => {
     const agg = { goles: 0, faltas: 0, amarillas: 0, rojas: 0, corners: 0, tiros: 0, penaltis: 0 };
     const N = 6;

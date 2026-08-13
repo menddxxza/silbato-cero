@@ -945,6 +945,13 @@ export class MatchEngine {
     }
     m.stoppage += 22;
     this.emit('card', { entity, card, incident });
+    // La segunda amarilla acaba en roja: el árbitro enseña las dos, y la
+    // interfaz tiene que enseñar las dos. Emitiendo sólo la amarilla se
+    // expulsaba a un jugador mientras en pantalla salía una cartulina
+    // amarilla, sin que la roja apareciera nunca.
+    if (card === 'yellow' && entity.yellow >= 2) {
+      this.emit('card', { entity, card: 'red', incident, secondYellow: true });
+    }
     // Todo el equipo se calienta
     for (const e of m.entities) {
       if (e.side === entity.side && e.onPitch) e.frustration = clamp(e.frustration + (card === 'red' ? 26 : 12), 0, 100);

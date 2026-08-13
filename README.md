@@ -60,9 +60,10 @@ subir nada y dónde vive cada cosa. Lo esencial:
 ## Pruebas
 
 ```bash
-node test/all.js       # 89 pruebas: reglamento, sistemas y motor
+node test/all.js       # 90 pruebas: reglamento, sistemas y motor
 node test/all.js -v    # con el detalle de cada prueba
-node test/run.js 60    # simula 60 partidos y saca las medias por pantalla
+node test/run.js 60      # 60 partidos de una jornada de liga normal
+node test/run.js 40 copa # eliminatorias y partidos calientes: todo sube
 ```
 
 - **Reglamento** (38): casos de las reglas del juego. Si una falla, el juego
@@ -73,7 +74,7 @@ node test/run.js 60    # simula 60 partidos y saca las medias por pantalla
   inexistente. También que los efectos del campo caduquen, que el movimiento
   se apague con `prefers-reduced-motion` y que la caché sin conexión liste
   exactamente los ficheros que hay en disco.
-- **Motor** (22): invariantes del partido (nadie sale del campo, la posesión
+- **Motor** (23): invariantes del partido (nadie sale del campo, la posesión
   cuadra, nunca quedan menos de siete jugadores, el mismo partido con la misma
   semilla da el mismo resultado) y que las medias caen en rangos creíbles.
 
@@ -262,6 +263,6 @@ palabra en castellano.
 
 ## Estado
 
-Terminado y jugable de principio a fin, con 89 pruebas automáticas en verde.
+Terminado y jugable de principio a fin, con 90 pruebas automáticas en verde.
 El detalle de lo que quedó dentro y lo que se decidió dejar fuera está en
 `NOTAS-DESARROLLO.md`.
