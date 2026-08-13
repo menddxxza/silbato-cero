@@ -367,13 +367,27 @@ qué: en el motor casi no hay pases a la espalda de la defensa. El margen
 mediano de las recepciones es de -15 m, es decir, se recibe siempre muy por
 detrás de la línea, así que no hay ocasión de estar en fuera de juego.
 
-Intenté añadir desmarques a la espalda —los delanteros atacando el hueco y el
-pase buscándolos— y **el remedio fue peor**: los goles cayeron de 2,6 a 1,8 y
-los tiros de 26 a 20, porque el balón se iba al hueco y lo recogía la defensa,
-y los fueras de juego no se movieron ni una décima. Se revirtió. Que un
-delantero corra a la espalda y **reciba** ahí exige un modelo de ataque bastante
-más fino (temporizar la carrera con el pase); queda anotado como lo que falta,
-no como algo que se pueda ajustar con una constante.
+Se intentó tres veces, y las tres se revirtieron:
+
+1. **Desmarques a la espalda**, con los delanteros atacando el hueco por su
+   cuenta. Goles 2,6 → 1,8 y tiros 26 → 20: el balón se iba al hueco y lo
+   recogía la defensa. Los fueras de juego, igual.
+2. **Peso al corredor en la elección del pase**, para que el balón lo buscara.
+   Sin efecto: el margen mediano de recepción seguía en -15 m.
+3. **Balón al hueco coordinado**: el que lleva el balón elige al corredor,
+   lanza su carrera al punto exacto donde caerá y mide la fuerza para que
+   lleguen los dos a la vez —incluyendo la anticipación del delantero, que es
+   de donde salen los fueras de juego de verdad—. Medido: el corredor sólo
+   recibe el 3% de esos balones, los goles bajan a 2,13, los córners se
+   disparan a 12,7 y los fueras de juego **empeoran** (2,3).
+
+La conclusión honesta es que esto no se arregla con una constante ni con un
+parche: hace falta un sistema de movimiento sin balón de verdad —temporizar
+carreras, arrastrar marcas, abrir líneas— y eso es una funcionalidad, no una
+calibración. Queda anotado como lo que falta.
+
+Lo que sí quedó del intento es la corrección de reglamento de arriba, que es
+correcta por sí misma tenga el número que tenga.
 
 ## Qué no está y por qué
 
