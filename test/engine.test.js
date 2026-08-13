@@ -303,6 +303,35 @@ export default suite('Motor de partido', (t) => {
     check(jugador.red === true && jugador.onPitch === false, 'y dejarlo fuera del campo');
   });
 
+  t('las demoras no son todas descaradas', () => {
+    // El retraso se calculaba sumando el acumulado entero, así que salía
+    // casi siempre por encima de los 12 s que el reglamento considera
+    // descarados: la pérdida de tiempo llegó a ser el 43% de las amarillas
+    // del partido (1,63 por partido, real 0,3-0,5), y de ahí salían casi
+    // todas las dobles amarillas.
+    const { match, engine } = playMatch({ seed: 980, home: 2, away: 9, soloCrear: true });
+    const demoras = [];
+    engine._raise = (inc) => {
+      if (inc && inc.type === 'timewasting') demoras.push(inc.truth.delaySeconds);
+      return null;
+    };
+
+    match.score[0] = 2; match.score[1] = 1;
+    // La demora sólo se plantea de vez en cuando: hacen falta muchas pasadas
+    // para tener muestra, pero no se simula nada.
+    for (let i = 0; i < 6000; i++) {
+      match.clock = 70 * 60;
+      match.restart = { type: 'throwIn', side: 0, pos: { x: 50, y: 2 } };
+      engine.timeWastingRaised = false;
+      engine.delayAccum = 7;
+      engine._checkTimeWasting(0.5);
+    }
+    check(demoras.length > 30, `pocas demoras para medir: ${demoras.length}`);
+    const descaradas = demoras.filter((d) => d > 12).length / demoras.length;
+    check(descaradas < 0.35,
+      `demasiadas demoras son descaradas de salida: ${(descaradas * 100).toFixed(0)}%`);
+  });
+
   t('las medias de un partido son creíbles', () => {
     const agg = { goles: 0, faltas: 0, amarillas: 0, rojas: 0, corners: 0, tiros: 0, penaltis: 0 };
     const N = 6;

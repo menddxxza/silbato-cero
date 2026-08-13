@@ -40,14 +40,14 @@ importancia 95, y eso inflaba goles, tarjetas y penaltis sin que se notara.
 
 | Métrica | Silbato Cero | Fútbol real (referencia) |
 |---|---|---|
-| Goles | 2,60 | 2,7 |
-| Faltas | 20,1 | 22–26 |
-| Amarillas | 3,6 | 3–5 |
-| Rojas | 0,35 | 0,1–0,2 |
-| Penaltis | 0,23 | 0,25 |
-| Fueras de juego | 3,2 | 3–5 |
-| Córners | 10,5 | 9–11 |
-| Tiros | 27,3 | 24–28 |
+| Goles | 2,67 | 2,7 |
+| Faltas | 21,7 | 22–26 |
+| Amarillas | 3,0 | 3–5 |
+| Rojas | 0,17 | 0,1–0,2 |
+| Penaltis | 0,27 | 0,25 |
+| Fueras de juego | 2,8 | 3–5 |
+| Córners | 10,6 | 9–11 |
+| Tiros | 26,3 | 24–28 |
 
 En copa (`node test/run.js 40 copa`): 2,88 goles · 21,1 faltas · 4,4 amarillas ·
 0,40 rojas · 0,30 penaltis. Un partido caliente con prórroga da más de todo,
@@ -131,7 +131,7 @@ No son deudas: son límites elegidos y sostenidos.
 - **Vertical en el móvil.** En pantallas altas el campo se gira un cuarto de
   vuelta y llena el teléfono, en lugar de quedarse en una franja central. La
   dirección de la palanca y del mando gira con él.
-- **Batería de pruebas.** 90 pruebas sin dependencias (`node test/all.js`):
+- **Batería de pruebas.** 91 pruebas sin dependencias (`node test/all.js`):
   reglamento, sistemas y motor. Incluye las que evitan las regresiones que más
   caro salieron durante el desarrollo: partidos que no terminan, jugadores
   fuera del campo, posesión que no cuadra, equipaciones indistinguibles,
@@ -326,20 +326,28 @@ aparecía nunca. Ahora se emiten las dos, como hace el árbitro de verdad:
 enseña la amarilla y después la roja. Comprobado en el navegador —amarilla,
 amarilla, roja— y fijado con una prueba.
 
-## Lo que sigue fuera de rango
+## Las rojas: la causa estaba en la pérdida de tiempo
 
-Honestidad por delante: quedan dos números que no he conseguido meter en su
-sitio, y prefiero dejarlos escritos a disimularlos.
+Las rojas iban a 0,35 por partido (real 0,1-0,2). Dos intentos fallaron antes
+de encontrar la causa, y el primero enseñó más que el arreglo: hacer al
+árbitro reticente a la segunda amarilla **no cambiaba absolutamente nada**
+—suprimiéndola siempre salían las mismas 0,35 exactas—, porque las tarjetas no
+llegan por esa vía. Se quitó ese código en lugar de dejarlo fingiendo.
 
-- **Rojas: 0,35 por partido** (real 0,1-0,2). En un partido tranquilo y seco
-  son 0,175, dentro de rango; suben con lluvia y rivalidad. Intenté que el
-  árbitro fuera reticente a la segunda amarilla —como lo son los de verdad— y
-  **el cambio no hacía absolutamente nada**: suprimiendo siempre la segunda
-  amarilla salían las mismas 0,35 exactas, porque las tarjetas no llegan por
-  esa vía. Quité el código en lugar de dejarlo fingiendo que servía.
-- **Faltas: 20,1 por partido** (real 22-26). Subir la frecuencia de entradas
-  las acerca, pero arrastra las tarjetas y las rojas hacia arriba. El
-  equilibrio actual prioriza que las tarjetas sean creíbles.
+Midiendo con el banco correcto —el que mueve al árbitro— salió el reparto:
+**todas las rojas eran dobles amarillas, ninguna directa**, y de las amarillas
+**1,63 por partido eran por pérdida de tiempo**, el 43% del total, cuando en el
+fútbol real son 0,3-0,5.
+
+El motivo: el retraso se calculaba sumando el acumulado entero más un margen,
+así que salía casi siempre por encima de los 12 segundos que el reglamento
+considera descarados. Es decir, **toda demora que llegaba al árbitro ya era
+amonestable**, cuando la mayoría deberían quedarse en advertencia. Corregido el
+cálculo, la pérdida de tiempo baja a 0,63 amarillas por partido y las rojas a
+**0,17: dentro de rango**.
+
+De paso subieron las entradas para acercar las faltas: 20,1 → 21,7, a las
+puertas del rango real (22-26).
 
 ## Qué no está y por qué
 

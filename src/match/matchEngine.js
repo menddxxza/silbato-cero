@@ -1200,7 +1200,11 @@ export class MatchEngine {
       .sort((a, b) => dist(a.pos, r.pos) - dist(b.pos, r.pos))[0];
     if (!taker) return;
 
-    const delaySeconds = this.delayAccum + m.rng.float(2, 10);
+    // La mayoría de las demoras son de las de «venga, saca ya»: sólo unas
+    // pocas pasan de descaradas. Sumando el acumulado entero salía siempre por
+    // encima del umbral de amonestación, y la pérdida de tiempo acababa siendo
+    // el 43% de las amarillas del partido (1,63 por partido, real 0,3-0,5).
+    const delaySeconds = this.delayAccum * 0.45 + m.rng.float(1, 9);
     this.deadballUntil += delaySeconds * 0.5;
     m.stoppage += delaySeconds;
     this.timeWastingRaised = true;
