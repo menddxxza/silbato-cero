@@ -5,6 +5,7 @@
 import { clamp, lerp } from '../core/rng.js';
 import { FIELD } from '../core/config.js';
 import { SIDE, attackDir, ownGoalX, targetGoalX, onPitch } from './state.js';
+import { reactionDelay, posHace, recordHistory } from './offBall.js';
 
 const L = FIELD.length, W = FIELD.width;
 
@@ -98,9 +99,13 @@ function chooseTarget(match, e, ctx) {
     if (mark) {
       const goalX = ownGoalX(match, e.side);
       const t = 0.7;
+      // Se marca lo que el atacante hacía hace un instante, no lo que hace
+      // ahora: quien mejor se coloca reacciona antes. Sin este retardo el
+      // marcaje era perfecto y ningún desmarque podía ganar un metro.
+      const vista = posHace(mark, reactionDelay(e));
       return {
-        x: lerp(mark.pos.x, goalX, 0.18) * t + homeTarget(match, e).x * (1 - t),
-        y: mark.pos.y * t + homeTarget(match, e).y * (1 - t),
+        x: lerp(vista.x, goalX, 0.18) * t + homeTarget(match, e).x * (1 - t),
+        y: vista.y * t + homeTarget(match, e).y * (1 - t),
         urgency: 0.75,
       };
     }
@@ -167,7 +172,16 @@ function buildContext(match) {
     }
   }
 
-  return { carrier, byDist, looseChasers, pressers, marks };
+  // Línea del penúltimo defensor rival, en la dirección de ataque de cada
+  // equipo: es la referencia del fuera de juego y del movimiento sin balón.
+  const lineX = [0, 1].map((side) => {
+    const dd = attackDir(match, side);
+    const defs = alive.filter((e) => e.side !== side && e.role !== 'GK')
+      .map((e) => e.pos.x * dd).sort((a, b) => b - a);
+    return defs.length > 1 ? defs[1] : (defs[0] ?? 0);
+  });
+
+  return { carrier, byDist, looseChasers, pressers, marks, lineX };
 }
 
 // -------------------------------------------------------------- movimiento
@@ -197,6 +211,7 @@ function stepEntity(match, e, target, dt) {
   e.pos.y = clamp(e.pos.y + e.vel.y * dt, -1.5, W + 1.5);
   const sp = Math.hypot(e.vel.x, e.vel.y);
   if (sp > 0.4) e.facing = Math.atan2(e.vel.y, e.vel.x);
+  recordHistory(e);
 
   // Fatiga
   const drain = (0.0016 + (sp / 9) * 0.02) * match.weather.stamina * dt * 6;

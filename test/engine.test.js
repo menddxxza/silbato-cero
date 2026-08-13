@@ -11,6 +11,7 @@ import { DIFFICULTY, FIELD, SIM } from '../src/core/config.js';
 import { RNG } from '../src/core/rng.js';
 import { makeChallengeIncident, makeHandballIncident, makeOffsideIncident } from '../src/match/incidents.js';
 import { tackleCaution } from '../src/match/sim.js';
+import { reactionDelay, recordHistory, posHace } from '../src/match/offBall.js';
 
 const world = generateWorld('motor');
 const div = world.divisions.find((d) => d.id === 'primera');
@@ -364,6 +365,38 @@ export default suite('Motor de partido', (t) => {
     const inc2 = makeOffsideIncident(match, pasador, receptor, snapshot2);
     check(inc2.truth.offside === true,
       `partiendo adelantado sí es fuera de juego (margen ${inc2.margin.toFixed(1)} m)`);
+  });
+
+  t('el marcaje reacciona con retraso, no adivina', () => {
+    // El defensor marcaba la posición exacta del atacante en cada fotograma:
+    // un marcaje clarividente con el que ningún desmarque puede ganar un
+    // metro. De ahí salían 2,5 fueras de juego por partido en vez de 3-5, y
+    // ningún balón llegaba a la espalda de la defensa.
+    const bueno = { player: { positioning: 90 } };
+    const malo = { player: { positioning: 20 } };
+    check(reactionDelay(bueno) < reactionDelay(malo),
+      'quien mejor se coloca debería reaccionar antes');
+    check(reactionDelay(bueno) > 0.1 && reactionDelay(malo) < 0.7,
+      'los retardos deberían estar en décimas de segundo, no en segundos');
+
+    // Un atacante que arranca deja atrás al que le marca
+    const atacante = { pos: { x: 0, y: 30 } };
+    // El motor guarda la posición al final del paso, después de mover
+    for (let i = 0; i < 20; i++) {
+      atacante.pos = { x: atacante.pos.x + 0.25, y: 30 };   // 7,5 m/s
+      recordHistory(atacante);
+    }
+    const visto = posHace(atacante, reactionDelay(malo));
+    const ventaja = atacante.pos.x - visto.x;
+    check(ventaja > 2, `el desmarque debería ganar metros al marcador: ${ventaja.toFixed(1)} m`);
+    check(posHace(atacante, 0).x === atacante.pos.x,
+      'sin retardo se ve la posición actual');
+
+    // Y que el motor lo use de verdad, no sólo que exista
+    const { match } = playMatch({ seed: 991, home: 0, away: 3 });
+    const conHistoria = match.entities.filter((e) => e.hist && e.hist.length > 5).length;
+    check(conHistoria >= 20,
+      `los jugadores deberían guardar su rastro para el marcaje: sólo ${conHistoria}`);
   });
 
   t('las medias de un partido son creíbles', () => {

@@ -42,6 +42,7 @@ const SHELL = [
   'src/match/assistants.js',
   'src/match/incidents.js',
   'src/match/matchEngine.js',
+  'src/match/offBall.js',
   'src/match/rating.js',
   'src/match/sim.js',
   'src/match/state.js',

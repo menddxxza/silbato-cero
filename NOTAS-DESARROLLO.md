@@ -40,14 +40,14 @@ importancia 95, y eso inflaba goles, tarjetas y penaltis sin que se notara.
 
 | Métrica | Silbato Cero | Fútbol real (referencia) |
 |---|---|---|
-| Goles | 2,42 | 2,7 |
-| Faltas | 22,6 | 22–26 |
-| Amarillas | 2,9 | 3–5 |
-| Rojas | 0,25 | 0,1–0,2 |
-| Penaltis | 0,18 | 0,25 |
-| Fueras de juego | 2,5 | 3–5 |
-| Córners | 10,0 | 9–11 |
-| Tiros | 25,9 | 24–28 |
+| Goles | 2,70 | 2,7 |
+| Faltas | 23,3 | 22–26 |
+| Amarillas | 3,7 | 3–5 |
+| Rojas | 0,23 | 0,1–0,2 |
+| Penaltis | 0,20 | 0,25 |
+| Fueras de juego | 3,2 | 3–5 |
+| Córners | 10,7 | 9–11 |
+| Tiros | 26,3 | 24–28 |
 
 Con 60 partidos, la incertidumbre de estas medias es de ±0,25 en los goles y
 ±0,10 en las rojas: por debajo de eso, mover una constante es mover ruido.
@@ -134,7 +134,7 @@ No son deudas: son límites elegidos y sostenidos.
 - **Vertical en el móvil.** En pantallas altas el campo se gira un cuarto de
   vuelta y llena el teléfono, en lugar de quedarse en una franja central. La
   dirección de la palanca y del mando gira con él.
-- **Batería de pruebas.** 92 pruebas sin dependencias (`node test/all.js`):
+- **Batería de pruebas.** 93 pruebas sin dependencias (`node test/all.js`):
   reglamento, sistemas y motor. Incluye las que evitan las regresiones que más
   caro salieron durante el desarrollo: partidos que no terminan, jugadores
   fuera del campo, posesión que no cuadra, equipaciones indistinguibles,
@@ -352,42 +352,57 @@ cálculo, la pérdida de tiempo baja a 0,63 amarillas por partido y las rojas a
 De paso subieron las entradas para acercar las faltas: 20,1 → 21,7, a las
 puertas del rango real (22-26).
 
-## El fuera de juego se juzgaba en el momento equivocado
+## El marcaje era clarividente
 
-Persiguiendo los fueras de juego (2,5 por partido frente a los 3-5 reales)
-apareció un fallo de reglamento: **se medía la posición del receptor al
-recibir, no en el instante en que se jugó el balón**, que es lo que dice la
-regla. Con eso, un delantero que arrancaba desde atrás y recibía adelantado
-salía «fuera de juego», y uno que partía adelantado y esperaba salía
-habilitado: justo al revés. Ahora la instantánea del pase guarda también dónde
-estaba cada atacante, y hay una prueba con los dos casos.
+Cuatro intentos hicieron falta para encontrar la causa de que casi no hubiera
+fueras de juego (2,5 por partido frente a los 3-5 reales), y la causa no
+estaba donde se buscaba.
 
-Eso corrige el criterio, pero **no arregla el número**, y conviene decir por
-qué: en el motor casi no hay pases a la espalda de la defensa. El margen
-mediano de las recepciones es de -15 m, es decir, se recibe siempre muy por
-detrás de la línea, así que no hay ocasión de estar en fuera de juego.
+Primero apareció un **fallo de reglamento**: se medía la posición del receptor
+al recibir, no en el instante en que se jugó el balón. Con eso, un delantero
+que arrancaba desde atrás y recibía adelantado salía «fuera de juego», y uno
+que partía adelantado y esperaba salía habilitado: justo al revés. Corregido,
+con una prueba para los dos casos. Pero el número no se movió.
 
-Se intentó tres veces, y las tres se revirtieron:
+Después, tres intentos de generar jugadas a la espalda, los tres revertidos:
 
-1. **Desmarques a la espalda**, con los delanteros atacando el hueco por su
-   cuenta. Goles 2,6 → 1,8 y tiros 26 → 20: el balón se iba al hueco y lo
-   recogía la defensa. Los fueras de juego, igual.
-2. **Peso al corredor en la elección del pase**, para que el balón lo buscara.
-   Sin efecto: el margen mediano de recepción seguía en -15 m.
-3. **Balón al hueco coordinado**: el que lleva el balón elige al corredor,
-   lanza su carrera al punto exacto donde caerá y mide la fuerza para que
-   lleguen los dos a la vez —incluyendo la anticipación del delantero, que es
-   de donde salen los fueras de juego de verdad—. Medido: el corredor sólo
-   recibe el 3% de esos balones, los goles bajan a 2,13, los córners se
-   disparan a 12,7 y los fueras de juego **empeoran** (2,3).
+1. **Desmarques por su cuenta.** Goles 2,6 → 1,8 y tiros 26 → 20: el balón se
+   iba al hueco y lo recogía la defensa.
+2. **Peso al corredor al elegir el pase.** Sin efecto: el margen mediano de
+   recepción seguía en -15 m.
+3. **Balón al hueco coordinado** —el portador elige al corredor, lanza su
+   carrera al punto exacto y mide la fuerza para que lleguen a la vez—. El
+   corredor sólo recibía el 3% de esos balones; goles 2,42 → 2,13 y córners
+   disparados a 12,7.
 
-La conclusión honesta es que esto no se arregla con una constante ni con un
-parche: hace falta un sistema de movimiento sin balón de verdad —temporizar
-carreras, arrastrar marcas, abrir líneas— y eso es una funcionalidad, no una
-calibración. Queda anotado como lo que falta.
+Y un cuarto: un **sistema completo de papeles sin balón** (atacar la espalda,
+ofrecerse al pie, dar amplitud, desdoblarse). Resultó ser el problema y no la
+solución: costaba un 20% de los tiros.
 
-Lo que sí quedó del intento es la corrección de reglamento de arriba, que es
-correcta por sí misma tenga el número que tenga.
+La causa real estaba debajo de todo eso: **los defensores marcaban la posición
+exacta del atacante en cada fotograma**. Un marcaje clarividente, que reacciona
+antes de que el otro se mueva. Con él, ningún desmarque puede ganar un metro,
+y sin ese metro no hay balón a la espalda que llegue ni fuera de juego que
+ocurra.
+
+Ahora se marca lo que el atacante hacía hace un instante (`match/offBall.js`):
+entre 0,22 s para el defensor que mejor se coloca y 0,50 s para el peor. Es un
+cambio de tres líneas en la simulación, y arregló de golpe lo que cuatro
+funcionalidades no habían conseguido:
+
+| | Antes | Después | Real |
+|---|---|---|---|
+| Goles | 2,42 | **2,70** | 2,7 |
+| Faltas | 22,6 | 23,3 | 22–26 |
+| Amarillas | 2,9 | **3,7** | 3–5 |
+| Fueras de juego | 2,5 | **3,2** | 3–5 |
+| Córners | 10,0 | 10,7 | 9–11 |
+| Tiros | 25,9 | 26,3 | 24–28 |
+
+Siete de las ocho medias dentro del rango real, y los goles clavados. La
+lección, que vale más que el número: cuatro síntomas que parecían
+independientes —pocos fueras de juego, pocas faltas, ningún balón a la
+espalda, pocas ocasiones— eran el mismo fallo, y estaba en la capa de abajo.
 
 ## Qué no está y por qué
 
