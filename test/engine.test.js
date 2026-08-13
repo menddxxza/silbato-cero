@@ -9,7 +9,7 @@ import { createReferee } from '../src/career/referee.js';
 import { makeAutoReferee } from '../src/ai/autoReferee.js';
 import { DIFFICULTY, FIELD, SIM } from '../src/core/config.js';
 import { RNG } from '../src/core/rng.js';
-import { makeChallengeIncident, makeHandballIncident } from '../src/match/incidents.js';
+import { makeChallengeIncident, makeHandballIncident, makeOffsideIncident } from '../src/match/incidents.js';
 import { tackleCaution } from '../src/match/sim.js';
 
 const world = generateWorld('motor');
@@ -330,6 +330,40 @@ export default suite('Motor de partido', (t) => {
     const descaradas = demoras.filter((d) => d > 12).length / demoras.length;
     check(descaradas < 0.35,
       `demasiadas demoras son descaradas de salida: ${(descaradas * 100).toFixed(0)}%`);
+  });
+
+  t('el fuera de juego se juzga en el instante del pase', () => {
+    // Se medía la posición de recepción, no la del momento en que se jugó el
+    // balón, que es lo que dice el reglamento. Con eso, un delantero que
+    // arrancaba desde atrás y recibía adelantado salía «fuera de juego», y uno
+    // que partía adelantado y esperaba salía habilitado: justo al revés.
+    const { match } = playMatch({ seed: 990, home: 4, away: 7, soloCrear: true });
+    const pasador = match.entities.find((e) => e.side === 0 && e.role === 'MF');
+    const receptor = match.entities.find((e) => e.side === 0 && e.role === 'FW');
+    const dir = match.entities[0].side === 0 ? 1 : 1;
+
+    // Defensa en x=60; el receptor recibe en x=70 (por delante), pero cuando
+    // se jugó el balón estaba en x=50, claramente habilitado.
+    const snapshot = {
+      defenders: [{ x: 60, y: 30 }, { x: 61, y: 38 }],
+      attackers: { [receptor.id]: { x: 50, y: 34 } },
+      ballX: 55,
+    };
+    receptor.pos = { x: 70, y: 34 };
+    const inc = makeOffsideIncident(match, pasador, receptor, snapshot);
+    check(inc.truth.offside === false,
+      `partiendo desde atrás no puede ser fuera de juego (margen ${inc.margin.toFixed(1)} m)`);
+
+    // Y al revés: partía adelantado aunque reciba retrasado
+    const snapshot2 = {
+      defenders: [{ x: 60, y: 30 }, { x: 61, y: 38 }],
+      attackers: { [receptor.id]: { x: 68, y: 34 } },
+      ballX: 55,
+    };
+    receptor.pos = { x: 58, y: 34 };
+    const inc2 = makeOffsideIncident(match, pasador, receptor, snapshot2);
+    check(inc2.truth.offside === true,
+      `partiendo adelantado sí es fuera de juego (margen ${inc2.margin.toFixed(1)} m)`);
   });
 
   t('las medias de un partido son creíbles', () => {

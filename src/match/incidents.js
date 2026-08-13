@@ -210,13 +210,15 @@ export function makeOffsideIncident(match, passer, receiver, snapshot) {
     .map((d) => d.x * dir)
     .sort((a, b) => b - a);
   const secondLast = defs.length > 1 ? defs[1] : defs[0] ?? 0;
-  const attackerAheadBy = receiver.pos.x * dir - Math.max(secondLast, snapshot.ballX * dir, (FIELD.length / 2) * dir);
+  // Dónde estaba el receptor cuando se jugó el balón, no dónde lo recibe
+  const enElPase = (snapshot.attackers && snapshot.attackers[receiver.id]) || receiver.pos;
+  const attackerAheadBy = enElPase.x * dir - Math.max(secondLast, snapshot.ballX * dir, (FIELD.length / 2) * dir);
 
   const truth = RuleEngine.evaluateOffside({
     attackerAheadBy,
     activeInterference: true,
     deliberatePlayByDefender: rng.bool(0.06),
-    inOwnHalf: receiver.pos.x * dir < (FIELD.length / 2) * dir,
+    inOwnHalf: enElPase.x * dir < (FIELD.length / 2) * dir,
   });
   truth.margin = attackerAheadBy;
 

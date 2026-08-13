@@ -40,14 +40,17 @@ importancia 95, y eso inflaba goles, tarjetas y penaltis sin que se notara.
 
 | Métrica | Silbato Cero | Fútbol real (referencia) |
 |---|---|---|
-| Goles | 2,67 | 2,7 |
-| Faltas | 21,7 | 22–26 |
-| Amarillas | 3,0 | 3–5 |
-| Rojas | 0,17 | 0,1–0,2 |
-| Penaltis | 0,27 | 0,25 |
-| Fueras de juego | 2,8 | 3–5 |
-| Córners | 10,6 | 9–11 |
-| Tiros | 26,3 | 24–28 |
+| Goles | 2,42 | 2,7 |
+| Faltas | 22,6 | 22–26 |
+| Amarillas | 2,9 | 3–5 |
+| Rojas | 0,25 | 0,1–0,2 |
+| Penaltis | 0,18 | 0,25 |
+| Fueras de juego | 2,5 | 3–5 |
+| Córners | 10,0 | 9–11 |
+| Tiros | 25,9 | 24–28 |
+
+Con 60 partidos, la incertidumbre de estas medias es de ±0,25 en los goles y
+±0,10 en las rojas: por debajo de eso, mover una constante es mover ruido.
 
 En copa (`node test/run.js 40 copa`): 2,88 goles · 21,1 faltas · 4,4 amarillas ·
 0,40 rojas · 0,30 penaltis. Un partido caliente con prórroga da más de todo,
@@ -131,7 +134,7 @@ No son deudas: son límites elegidos y sostenidos.
 - **Vertical en el móvil.** En pantallas altas el campo se gira un cuarto de
   vuelta y llena el teléfono, en lugar de quedarse en una franja central. La
   dirección de la palanca y del mando gira con él.
-- **Batería de pruebas.** 91 pruebas sin dependencias (`node test/all.js`):
+- **Batería de pruebas.** 92 pruebas sin dependencias (`node test/all.js`):
   reglamento, sistemas y motor. Incluye las que evitan las regresiones que más
   caro salieron durante el desarrollo: partidos que no terminan, jugadores
   fuera del campo, posesión que no cuadra, equipaciones indistinguibles,
@@ -348,6 +351,29 @@ cálculo, la pérdida de tiempo baja a 0,63 amarillas por partido y las rojas a
 
 De paso subieron las entradas para acercar las faltas: 20,1 → 21,7, a las
 puertas del rango real (22-26).
+
+## El fuera de juego se juzgaba en el momento equivocado
+
+Persiguiendo los fueras de juego (2,5 por partido frente a los 3-5 reales)
+apareció un fallo de reglamento: **se medía la posición del receptor al
+recibir, no en el instante en que se jugó el balón**, que es lo que dice la
+regla. Con eso, un delantero que arrancaba desde atrás y recibía adelantado
+salía «fuera de juego», y uno que partía adelantado y esperaba salía
+habilitado: justo al revés. Ahora la instantánea del pase guarda también dónde
+estaba cada atacante, y hay una prueba con los dos casos.
+
+Eso corrige el criterio, pero **no arregla el número**, y conviene decir por
+qué: en el motor casi no hay pases a la espalda de la defensa. El margen
+mediano de las recepciones es de -15 m, es decir, se recibe siempre muy por
+detrás de la línea, así que no hay ocasión de estar en fuera de juego.
+
+Intenté añadir desmarques a la espalda —los delanteros atacando el hueco y el
+pase buscándolos— y **el remedio fue peor**: los goles cayeron de 2,6 a 1,8 y
+los tiros de 26 a 20, porque el balón se iba al hueco y lo recogía la defensa,
+y los fueras de juego no se movieron ni una décima. Se revirtió. Que un
+delantero corra a la espalda y **reciba** ahí exige un modelo de ataque bastante
+más fino (temporizar la carrera con el pase); queda anotado como lo que falta,
+no como algo que se pueda ajustar con una constante.
 
 ## Qué no está y por qué
 

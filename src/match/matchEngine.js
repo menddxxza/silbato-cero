@@ -206,6 +206,13 @@ export class MatchEngine {
       snapshot: {
         defenders: m.entities.filter((e) => e.side !== from.side && e.onPitch && !e.red && e.role !== 'GK')
           .map((e) => ({ x: e.pos.x, y: e.pos.y })),
+        // El fuera de juego se juzga en el instante del pase, no al recibir:
+        // hay que guardar también dónde estaban los atacantes. Sin esto se
+        // medía la posición de recepción y ningún desmarque a la espalda podía
+        // salir fuera de juego (0,90 por partido frente a los 3-5 reales).
+        attackers: Object.fromEntries(m.entities
+          .filter((e) => e.side === from.side && e.onPitch && !e.red)
+          .map((e) => [e.id, { x: e.pos.x, y: e.pos.y }])),
         ballX: m.ball.pos.x,
       },
       clock: m.clock,
