@@ -9,6 +9,16 @@ import { clamp, lerp } from '../core/rng.js';
 const L = FIELD.length, W = FIELD.width;
 const MARGIN = 6.5;          // metros de césped exterior
 const STAND_DEPTH = 26;      // metros de gradas dibujadas
+// Techo de resolución interna del lienzo. Por encima de esto el coste de
+// relleno se come el fotograma sin que se vea mejor.
+const MAX_PIXELS = 2.4e6;
+// Un fotograma que pasa de esto ha perdido al menos un refresco de pantalla:
+// es un tirón, no lentitud repartida.
+const TIRON = 25;
+// Proporción de tirones que se tolera antes de bajar calidad, y por debajo de
+// la cual se considera que va fino.
+const DEMASIADOS = 0.2;
+const LIMPIO = 0.05;
 
 // Lee un token del sistema de diseño; si no está, usa el respaldo.
 function token(name, fallback) {
@@ -44,7 +54,12 @@ export class Renderer {
     this.motion = (typeof matchMedia !== 'undefined'
       && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 0 : 1;
     this.spot = null;          // foco sobre la jugada en decisión
-    this.dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
+    // Calidad de dibujado: multiplica la resolución interna del lienzo. Se
+    // ajusta sola según lo que aguante la máquina (ver `tuneQuality`).
+    this.quality = 1;
+    this._frames = [];
+    this._sinceTune = 0;
+    this.dpr = this._renderScale();
     this.palette = {
       turf: token('--canvas-turf', '#1f7038'),
       turfDark: token('--canvas-turf-dark', '#185c2e'),
@@ -54,11 +69,77 @@ export class Renderer {
     this.resize();
   }
 
-  resize() {
+  /** Tamaño en píxeles CSS del lienzo. */
+  _cssSize() {
     const c = this.canvas;
     const r = c.getBoundingClientRect();
-    const w = Math.max(320, r.width || c.clientWidth || 960);
-    const h = Math.max(240, r.height || c.clientHeight || 600);
+    return [
+      Math.max(320, r.width || c.clientWidth || 960),
+      Math.max(240, r.height || c.clientHeight || 600),
+    ];
+  }
+
+  /**
+   * Cuántos píxeles reales se dibujan por píxel CSS.
+   *
+   * Dibujar a la densidad nativa de una pantalla moderna significa cuatro
+   * veces más píxeles: medido, 5,9 millones a 8 fps frente a 1,5 millones a
+   * 25. El juego está limitado por relleno —quitar cualquier pasada a
+   * pantalla completa lo devuelve a 60—, así que la resolución interna tiene
+   * techo. El lienzo se estira por CSS hasta su tamaño real, que con formas
+   * planas como éstas apenas se nota.
+   */
+  _renderScale() {
+    const [w, h] = this._cssSize();
+    const nativo = Math.min(globalThis.devicePixelRatio || 1, 2) * this.quality;
+    const techo = Math.sqrt(MAX_PIXELS / (w * h));
+    return clamp(Math.min(nativo, techo), 0.6, 2);
+  }
+
+  /**
+   * Baja o sube la calidad según lo que aguante la máquina, en ventanas de
+   * medio segundo.
+   *
+   * Se mide la **proporción de fotogramas perdidos**, no la media ni la
+   * mediana. Con vsync los fotogramas se cuantizan: duran 16,7 ms o 33,3, no
+   * valores intermedios. Un juego que alterna entre los dos —exactamente lo
+   * que se ve como «a trompicones»— tiene una mediana de 16,7 ms, o sea que
+   * por la mediana parece perfecto. Un primer intento usaba umbrales de
+   * mediana y dejaba pasar un 32% de fotogramas perdidos sin inmutarse.
+   *
+   * Baja deprisa —un tirón se nota— y sube despacio, sólo tras varias
+   * ventanas limpias seguidas, para no quedarse rebotando entre dos niveles.
+   */
+  tuneQuality(dt) {
+    if (!(dt > 0) || dt > 0.5) return;      // pestaña de fondo o parón: no cuenta
+    this._frames.push(dt * 1000);
+    this._sinceTune += dt;
+    if (this._sinceTune < 0.5 || this._frames.length < 20) return;
+
+    const tirones = this._frames.filter((x) => x > TIRON).length / this._frames.length;
+    this._frames.length = 0;
+    this._sinceTune = 0;
+
+    const antes = this.quality;
+    if (tirones > DEMASIADOS) {
+      this._buenas = 0;
+      if (this.quality > 0.5) this.quality = Math.max(0.5, this.quality - 0.15);
+    } else if (tirones < LIMPIO) {
+      this._buenas = (this._buenas || 0) + 1;
+      if (this._buenas >= 3 && this.quality < 1) {
+        this.quality = Math.min(1, this.quality + 0.15);
+        this._buenas = 0;
+      }
+    } else {
+      this._buenas = 0;                     // ni fino ni roto: se deja como está
+    }
+    if (this.quality !== antes) this.resize();
+  }
+
+  resize() {
+    const c = this.canvas;
+    const [w, h] = this._cssSize();
+    this.dpr = this._renderScale();
     c.width = Math.round(w * this.dpr);
     c.height = Math.round(h * this.dpr);
     this.w = w; this.h = h;

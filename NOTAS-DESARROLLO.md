@@ -603,3 +603,65 @@ en OKLCH). Registro en `.hallmark/log.json`.
     módulo llama a `t()` sin tenerlo —la clase entera de fallo— y otra fuerza
     la oferta, la compone y responde las cuatro opciones. Verificadas
     deshaciendo el arreglo: fallan las dos.
+
+## El juego iba a trompicones, y no era la lógica
+
+Reportado como «lento, a trompicones». Medido en el bucle real de dibujado
+—no empujando `update()` a mano, que es lo que se había hecho hasta ahora y
+se salta todo el dibujado—: **40 fps con la mitad de los fotogramas a 33 ms**.
+El síntoma exacto: alterna entre 60 y 30, que es lo que se ve como tirones.
+
+Aislando por partes con el bucle real, la respuesta fue tajante: **sin
+`renderer.draw` el juego va a 60 fps clavados y 0% de fotogramas perdidos**.
+El HUD, el audio y el motor de partido juntos no llegaban a mover la aguja.
+
+La causa está en cuántos píxeles se pintan. En una pantalla de alta densidad
+—cualquier portátil moderno, o Windows al 150%— el lienzo pasa de 1,5 a 5,9
+millones de píxeles:
+
+| Lienzo | Píxeles | fps | Fotogramas perdidos |
+|---|---|---|---|
+| 1498×988 | 1,48 M | 25 | 87% |
+| 2995×1976 | 5,92 M | 8 | 100% |
+
+Cuatro veces más píxeles, tres veces más lento: está limitado por relleno.
+Ahora la resolución interna tiene techo (2,4 Mpx) y además **se adapta sola**
+a la máquina. El lienzo se estira por CSS hasta su tamaño real, que con
+formas planas como éstas apenas se nota.
+
+| | Antes | Después |
+|---|---|---|
+| Pantalla normal | 25 fps · 87% perdidos | **56 fps · 8%** |
+| Pantalla de alta densidad | 8 fps · 100% perdidos | **42 fps · 42%** |
+
+(El segundo caso topa con el suelo de calidad: el contenedor de pruebas
+rasteriza por software, sin GPU. En una máquina real el techo de resolución
+basta por sí solo.)
+
+### Dos intentos fallidos, y lo que enseñaron
+
+1. **Cachear el fondo en capas.** El estadio y el césped se redibujaban
+   enteros cada fotograma —siete anillos de grada, veintiséis franjas, un
+   degradado radial creado de cero, todas las líneas— y nada de eso cambia.
+   Parecía el arreglo evidente. Construido en coordenadas del mundo para que
+   valiera con cualquier cámara, dio **37 fps frente a los 40 de partida**:
+   estampar dos mapas de bits a pantalla completa cuesta lo mismo que el
+   dibujo vectorial que sustituía, porque el límite son los píxeles, no la
+   geometría. Una variante que los construía con margen y los estampaba
+   reducidos bajó a **21 fps**: remuestrear dos millones de píxeles es peor
+   todavía. Borrado entero, como manda la casa.
+
+2. **Medir por mediana de fotograma.** El primer ajuste automático subía
+   calidad por debajo de 14 ms y bajaba por encima de 21. Dos fallos, y los
+   dos los destaparon las pruebas: con vsync a 60 Hz un fotograma dura 16,7 ms
+   **aunque sobre potencia**, así que el umbral de subida no se cumplía jamás
+   y la calidad bajaba para no volver; y como los fotogramas se cuantizan a
+   16,7 o 33,3, un juego que alterna entre ambos —justo el síntoma— tiene
+   mediana de 16,7 y por la mediana parece perfecto. Dejaba pasar un 32% de
+   fotogramas perdidos sin inmutarse. Ahora se mide **la proporción de
+   fotogramas perdidos**, que es lo que la persona percibe.
+
+También quedó una lección de método: las mediciones por método envueltas en
+`performance.now()` daban resultados que se contradecían solos —quitar trabajo
+salía *más lento*— porque en canvas el tiempo se va en la rasterización, no en
+la llamada. Sólo vale medir el bucle real.

@@ -455,6 +455,72 @@ export default suite('Sistemas', (t) => {
     check(sobran.length === 0, `en la caché pero ya no existen: ${sobran.join(', ')}`);
   });
 
+  t('el dibujado baja de calidad si la máquina no da 60 fps', () => {
+    // El juego estaba limitado por relleno: en una pantalla de alta densidad
+    // dibujaba 5,9 millones de píxeles por fotograma y se quedaba en 8 fps,
+    // «lento y a trompicones». Ahora la resolución interna se adapta sola.
+    const r = bareRenderer();
+    r.quality = 1; r._frames = []; r._sinceTune = 0;
+    let resizes = 0;
+    r.resize = () => { resizes++; };
+
+    const correr = (ms, segundos = 1) => {
+      for (let i = 0; i < Math.ceil(segundos / (ms / 1000)); i++) r.tuneQuality(ms / 1000);
+    };
+
+    correr(33, 3);                                  // 30 fps sostenidos
+    check(r.quality < 1, `debería haber bajado la calidad, sigue en ${r.quality}`);
+    check(resizes > 0, 'bajar la calidad tiene que rehacer el lienzo');
+    const bajada = r.quality;
+
+    correr(10, 3);                                  // ahora va sobrado
+    check(r.quality > bajada, `debería recuperar calidad, se quedó en ${r.quality}`);
+    check(r.quality <= 1, 'nunca por encima de la resolución nativa');
+
+    correr(33, 20);                                 // machacando
+    check(r.quality >= 0.5, `no debe hundirse: ${r.quality}`);
+
+    // Un fotograma suelto malísimo (cambio de pestaña, parón del sistema) no
+    // debe contarse: si no, volver al juego bajaría la calidad sin motivo.
+    const antes = r.quality;
+    r._frames = []; r._sinceTune = 0;
+    r.tuneQuality(2);
+    check(r._frames.length === 0, 'un parón largo no debería entrar en la media');
+    check(r.quality === antes, 'un parón no debe cambiar la calidad');
+  });
+
+  t('el tirón que la mediana no ve sí baja la calidad', () => {
+    // Con vsync un fotograma dura 16,7 ms o 33,3, nunca algo intermedio. Un
+    // juego que alterna entre los dos se ve fatal y tiene mediana de 16,7:
+    // por la mediana parecía perfecto. Éste es el caso que se escapaba.
+    const r = bareRenderer();
+    r.quality = 1; r._frames = []; r._sinceTune = 0;
+    r.resize = () => {};
+    for (let i = 0; i < 400; i++) r.tuneQuality((i % 3 === 0 ? 33.3 : 16.7) / 1000);
+    check(r.quality < 1, `un tercio de fotogramas perdidos debería bajar la calidad, sigue en ${r.quality}`);
+  });
+
+  t('a 60 fps clavados la calidad vuelve a subir', () => {
+    // Con la pantalla a 60 Hz el fotograma dura 16,7 ms aunque sobre potencia.
+    // Un umbral que exigiera menos de eso no se cumpliría nunca y la calidad
+    // bajaría para no volver a subir jamás.
+    const r = bareRenderer();
+    r.quality = 0.7; r._frames = []; r._sinceTune = 0;
+    r.resize = () => {};
+    for (let i = 0; i < 600; i++) r.tuneQuality(0.0167);
+    check(r.quality === 1, `debería recuperar la calidad nativa, quedó en ${r.quality}`);
+  });
+
+  t('un tirón suelto no cambia la calidad', () => {
+    // Una ventana con algún fotograma perdido, pero pocos, se deja como está:
+    // corregir por ruido haría que la resolución bailara sin parar.
+    const r = bareRenderer();
+    r.quality = 0.85; r._frames = []; r._sinceTune = 0;
+    r.resize = () => {};
+    for (let i = 0; i < 400; i++) r.tuneQuality((i % 10 === 0 ? 33.3 : 16.7) / 1000);
+    check(r.quality === 0.85, `un 10% de tirones no debería mover nada: ${r.quality}`);
+  });
+
   t('con movimiento reducido no se lanzan partículas', () => {
     const r = bareRenderer();
     r.motion = 0;

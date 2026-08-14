@@ -156,6 +156,8 @@ export class Game {
   _loop(now) {
     const dt = Math.min(0.05, (now - this.lastFrame) / 1000);
     this.lastFrame = now;
+    // El dibujado se adapta a la máquina: si no llega a 60, baja resolución
+    this.renderer.tuneQuality(dt);
 
     if (this.engine && !this.engine.finished) {
       const varSession = this.engine.var.session;
