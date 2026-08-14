@@ -2,3 +2,7 @@
 node_modules
 .DS_Store
 *.local
+
+# Generados por tools/bundle.mjs al publicar; no se versionan
+silbato-cero.html
+silbato-cero.incrustable.html

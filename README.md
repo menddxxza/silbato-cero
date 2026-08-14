@@ -15,6 +15,12 @@ Cada push a `main` publica ahí la versión nueva, y sólo si las pruebas pasan.
 Desde el móvil se puede añadir a la pantalla de inicio y se comporta como una
 aplicación.
 
+**En un solo fichero, sin servidor:** descarga
+[`silbato-cero.html`](https://menddxxza.github.io/silbato-cero/silbato-cero.html)
+y ábrelo haciendo doble clic. Son 500 KB con el juego entero dentro —motor,
+reglamento, mundo, idiomas y estilos—, funciona sin conexión y se puede mandar
+por correo. Se construye con `node tools/bundle.mjs`.
+
 ### En local
 
 No hay compilación ni dependencias: son módulos ES nativos.

@@ -461,4 +461,37 @@ export default suite('Sistemas', (t) => {
     r.burst(0);
     check(r.confetti.length === 0, 'debería respetarse prefers-reduced-motion');
   });
+
+  t('el juego se empaqueta en un solo fichero', async () => {
+    // La versión de un solo fichero es la que se reparte para jugar sin
+    // servidor. Si alguien añade un módulo con una dependencia circular, o dos
+    // módulos exportan lo mismo, el empaquetado deja de construirse: mejor que
+    // falle aquí que descubrirlo con el fichero ya repartido.
+    const { execFileSync } = await import('child_process');
+    const { readFileSync, existsSync, unlinkSync } = await import('fs');
+    const raiz = new URL('..', import.meta.url).pathname;
+    const salida = `${raiz}silbato-cero.html`;
+    const habia = existsSync(salida);
+
+    try {
+      execFileSync(process.execPath, [`${raiz}tools/bundle.mjs`], { cwd: raiz, stdio: 'pipe' });
+    } catch (e) {
+      // El empaquetador aborta con un motivo claro (ciclo, nombre repetido,
+      // import que no existe): que se lea como fallo de prueba, no como
+      // excepción que se lleva por delante la suite entera.
+      const motivo = String(e.stderr || e.message).split('\n').find((l) => l.startsWith('Error:')) || e.message;
+      check(false, `no se pudo empaquetar: ${motivo.trim()}`);
+    }
+    const html = readFileSync(salida, 'utf8');
+
+    check(html.length > 200000, `el fichero salió demasiado corto: ${html.length} bytes`);
+    check(html.includes('__m("src/main.js")'), 'el empaquetado no arranca el juego');
+    check(!/from\s+['"]\.\.?\//.test(html), 'quedaron imports relativos sin resolver');
+    check(!/<script[^>]+src=/.test(html), 'quedó un guion externo: no funcionaría suelto');
+    check(!/<link[^>]+stylesheet/.test(html), 'quedó una hoja de estilos externa');
+    for (const m of ['ruleEngine', 'matchEngine', 'autoReferee', 'generators']) {
+      check(html.includes(`src/`) && html.includes(m), `falta ${m} en el empaquetado`);
+    }
+    if (!habia) unlinkSync(salida);
+  });
 });
