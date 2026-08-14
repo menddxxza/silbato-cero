@@ -592,3 +592,14 @@ en OKLCH). Registro en `.hallmark/log.json`.
 20. **El partido de fondo del menú no se veía**: el velo de las pantallas es
     casi opaco. Ahora el menú usa un velo más claro (`#screens.airy`) y el
     resto de pantallas detiene la simulación de fondo.
+21. **La oferta de soborno reventaba la carrera** (`t is not defined`):
+    `career.js` traducía el texto de la oferta sin importar `t()`. Como el
+    evento sale un 7% de las jornadas, no aparecía en ninguna prueba ni en un
+    par de partidas sueltas; salió en un recorrido completo de carrera en
+    navegador. El arreglo no es sólo añadir el import: la carrera ahora guarda
+    **la clave y sus datos**, no el texto ya traducido, que es lo que manda el
+    §64 y además evita que una partida guardada en español siga en español
+    después de cambiar de idioma. Dos pruebas nuevas: una comprueba que ningún
+    módulo llama a `t()` sin tenerlo —la clase entera de fallo— y otra fuerza
+    la oferta, la compone y responde las cuatro opciones. Verificadas
+    deshaciendo el arreglo: fallan las dos.

@@ -370,7 +370,11 @@ export class Career {
       clubId: club.id,
       clubName: club.name,
       amount,
-      text: t('ethics.offer', { club: club.name, amount }),
+      // La carrera guarda la clave y sus datos, no el texto ya traducido: la
+      // lógica no debe contener textos (y una partida guardada en español
+      // seguiría enseñando español después de cambiar de idioma).
+      textKey: 'ethics.offer',
+      textArgs: { club: club.name, amount },
     };
   }
 

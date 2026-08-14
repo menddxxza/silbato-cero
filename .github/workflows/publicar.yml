@@ -1,0 +1,47 @@
+# Publica el juego en GitHub Pages para poder jugarlo desde el navegador.
+#
+# El juego es HTML y módulos de JavaScript sin compilar: no hay nada que
+# construir, se sube el repositorio tal cual. Sólo publica si las pruebas
+# pasan, para que en el enlace nunca haya una versión rota.
+name: Publicar
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Una publicación a la vez; si llegan dos, gana la última.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Las pruebas antes de publicar
+        run: node test/all.js
+      - name: Preparar Pages
+        uses: actions/configure-pages@v5
+        with:
+          # Activa Pages en el repositorio si aún no lo estaba
+          enablement: true
+      - name: Empaquetar el juego
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Publicar
+        id: deploy
+        uses: actions/deploy-pages@v4

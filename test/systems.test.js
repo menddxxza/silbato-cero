@@ -7,6 +7,7 @@ import { createMatch, colorDistance } from '../src/match/state.js';
 import { Career, ASSETS } from '../src/career/career.js';
 import { createReferee, addExperience, trainStat, overall } from '../src/career/referee.js';
 import { DIFFICULTY } from '../src/core/config.js';
+import { t as traducir } from '../src/core/i18n.js';
 import { es } from '../i18n/es.js';
 import { en } from '../i18n/en.js';
 import { QUESTIONS } from '../src/data/examQuestions.js';
@@ -136,6 +137,61 @@ export default suite('Sistemas', (t) => {
       }
     }
     check(missing.size === 0, `claves sin traducción: ${[...missing].slice(0, 10).join(', ')}`);
+  });
+
+  t('todo módulo que traduce importa t()', async () => {
+    // `career.js` llamaba a t() sin importarlo: la oferta de soborno reventaba
+    // con «t is not defined» y se llevaba por delante la carrera. La prueba de
+    // arriba no lo veía porque la clave sí existía; lo que faltaba era la
+    // función. Esto cubre la clase entera de fallo.
+    const { readFileSync, readdirSync, statSync } = await import('fs');
+    const files = [];
+    const walk = (dir) => {
+      for (const f of readdirSync(dir)) {
+        const p = `${dir}/${f}`;
+        if (statSync(p).isDirectory()) walk(p);
+        else if (f.endsWith('.js')) files.push(p);
+      }
+    };
+    walk(new URL('../src', import.meta.url).pathname);
+
+    const sinImportar = [];
+    for (const f of files) {
+      const src = readFileSync(f, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/(^|[^:])\/\/.*$/gm, '$1');
+      if (!/(^|[^\w.$'"])t\(/m.test(src)) continue;        // no traduce: nada que comprobar
+      if (f.endsWith('i18n.js')) continue;                 // el propio módulo de i18n
+      const importaT = /import\s*\{[^}]*\bt\b[^}]*\}\s*from\s*['"][^'"]*i18n\.js['"]/.test(src);
+      const defineT = /\b(?:const|let|var|function)\s+t\s*[=(]/.test(src);
+      if (!importaT && !defineT) sinImportar.push(f.split('/').slice(-2).join('/'));
+    }
+    check(sinImportar.length === 0, `usan t() sin tenerlo: ${sinImportar.join(', ')}`);
+  });
+
+  t('la oferta de soborno se genera, se lee y se puede responder', () => {
+    // Se fuerza el evento en vez de esperar a que salga por azar (~7%).
+    const c = new Career({ worldSeed: 'etica' });
+    c.referee.corruption = 40;
+    let ev = null;
+    for (let i = 0; i < 300 && !ev; i++) ev = c._maybeEthicsEvent(c.assignments[0]);
+    check(!!ev, 'nunca se generó una oferta en 300 intentos');
+    check(!!ev.textKey && (ev.textKey in es), `la oferta no trae clave traducible: ${ev.textKey}`);
+    check(!ev.text, 'la lógica no debe guardar el texto ya traducido');
+    check(typeof ev.amount === 'number' && ev.amount > 0, 'la oferta necesita una cantidad');
+
+    // El texto se compone de verdad, con sus datos dentro
+    const texto = traducir(ev.textKey, ev.textArgs || {});
+    check(!texto.includes('{'), `quedaron huecos sin rellenar: ${texto}`);
+    check(texto.includes(ev.textArgs.club), 'el texto no nombra al club que soborna');
+
+    // Y las cuatro respuestas funcionan
+    for (const choice of ['accept', 'refuse', 'report', 'ignore']) {
+      const c2 = new Career({ worldSeed: 'etica2' });
+      c2.pendingEthics = { ...ev };
+      const res = c2.resolveEthics(choice);
+      check(!!res && !!res.type, `la respuesta «${choice}» no devuelve resultado`);
+    }
   });
 
   t('las claves construidas al vuelo existen en los dos idiomas', async () => {

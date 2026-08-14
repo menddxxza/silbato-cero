@@ -480,7 +480,7 @@ export class Screens {
   ethicsEvent(ev) {
     this.render(`
       <h2>${t('ethics.offerTitle')}</h2>
-      <div class="card story"><p>${esc(ev.text)}</p></div>
+      <div class="card story"><p>${esc(ev.textKey ? t(ev.textKey, ev.textArgs || {}) : (ev.text || ''))}</p></div>
       <div class="row-btns">
         <button class="danger" data-act="ethics" data-choice="accept">${t('ethics.accept')}</button>
         <button class="primary" data-act="ethics" data-choice="refuse">${t('ethics.refuse')}</button>

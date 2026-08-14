@@ -9,6 +9,14 @@ assets de terceros.
 
 ## Cómo jugarlo
 
+**En el navegador, sin instalar nada:** https://menddxxza.github.io/silbato-cero/
+
+Cada push a `main` publica ahí la versión nueva, y sólo si las pruebas pasan.
+Desde el móvil se puede añadir a la pantalla de inicio y se comporta como una
+aplicación.
+
+### En local
+
 No hay compilación ni dependencias: son módulos ES nativos.
 
 ```bash
